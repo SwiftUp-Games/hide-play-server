@@ -60,6 +60,20 @@ function generateRoomCode(): string {
   return code;
 }
 
+function getOnlineStats() {
+  let realPlayers = 0;
+  for (const r of rooms.values()) {
+    realPlayers += r.players.size;
+  }
+  const simulatedPool = 1420 + (rooms.size * 5) + realPlayers;
+  return {
+    online_players: simulatedPool,
+    active_rooms: Math.max(rooms.size, 14),
+    real_players: realPlayers,
+    region: 'Asia-South (Mumbai)'
+  };
+}
+
 // ----------------------------------------------------------------------------
 // HTTP Server (Health Check & Room Discovery API)
 // ----------------------------------------------------------------------------
@@ -84,17 +98,16 @@ const server = http.createServer((req, res) => {
   }
 
   if (url.pathname === '/health' || url.pathname === '/') {
-    let totalPlayers = 0;
-    for (const r of rooms.values()) {
-      totalPlayers += r.players.size;
-    }
+    const stats = getOnlineStats();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
       service: 'hide-play-online-relay',
       uptime_seconds: Math.floor(process.uptime()),
-      active_rooms: rooms.size,
-      active_players: totalPlayers,
+      active_rooms: stats.active_rooms,
+      active_players: stats.real_players,
+      online_players: stats.online_players,
+      region: stats.region,
       timestamp: Date.now()
     }));
     return;
@@ -138,8 +151,16 @@ function getPublicRoomsSummary() {
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws: WebSocket) => {
-  // Send immediate welcome ping
-  safeSend(ws, { type: 'CONNECTED', version: '1.0.0', serverTime: Date.now() });
+  // Send immediate welcome ping with online stats
+  const stats = getOnlineStats();
+  safeSend(ws, { 
+    type: 'CONNECTED', 
+    version: '1.0.0', 
+    serverTime: Date.now(),
+    online_players: stats.online_players,
+    active_rooms: stats.active_rooms,
+    region: stats.region
+  });
 
   ws.on('message', (raw: Buffer | string) => {
     // Check if raw binary or text JSON
@@ -167,6 +188,19 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
+// Periodic heartbeat to prevent idle timeouts across Render/Cloudflare proxies
+setInterval(() => {
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.ping();
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+}, 25000);
+
 // ----------------------------------------------------------------------------
 // Client Message Router
 // ----------------------------------------------------------------------------
@@ -177,8 +211,17 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
   switch (msg.type) {
     case 'PING':
-      safeSend(ws, { type: 'PONG', time: Date.now() });
+    case 'GET_STATS': {
+      const stats = getOnlineStats();
+      safeSend(ws, { 
+        type: 'PONG', 
+        time: Date.now(),
+        online_players: stats.online_players,
+        active_rooms: stats.active_rooms,
+        region: stats.region
+      });
       break;
+    }
 
     case 'LIST_ROOMS':
       safeSend(ws, { type: 'ROOM_LIST', rooms: getPublicRoomsSummary() });
@@ -200,6 +243,16 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       if (targetRoom) {
         // Join existing room
         joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress);
+        if (!targetRoom.matchmakingTimer) {
+          startMatchmakingTimer(targetRoom);
+        } else {
+          safeSend(ws, {
+            type: 'MATCHMAKING_TICK',
+            seconds_left: targetRoom.matchmakingSecondsLeft,
+            players_count: targetRoom.players.size,
+            max_players: targetRoom.maxPlayers
+          });
+        }
       } else {
         // Create new public room and start 30s bot timer
         const newRoom = createRoomInternal(ws, {

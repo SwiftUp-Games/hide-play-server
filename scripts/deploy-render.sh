@@ -33,7 +33,7 @@ render services create \
   --runtime node \
   --region singapore \
   --plan free \
-  --build-command "npm install && npm run build" \
+  --build-command "npm install --include=dev && npm run build" \
   --start-command "npm start" \
   --health-check-path "/health" \
   --auto-deploy \

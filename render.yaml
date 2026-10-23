@@ -5,7 +5,7 @@ services:
     plan: free
     region: singapore # singapore provides ultra-low latency for India / SE Asia
     branch: main
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true

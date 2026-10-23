@@ -10,7 +10,8 @@
     "stop": "./stop.sh",
     "status": "./status.sh",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit"
+    "test": "tsc --noEmit",
+    "deploy:render": "./scripts/deploy-render.sh"
   },
   "keywords": ["hide-and-seek", "multiplayer", "webrtc", "godot"],
   "author": "",

@@ -233,8 +233,21 @@ function handleClientMessage(ws: WebSocket, msg: any) {
     // 3. JOIN ROOM (By 4-letter Code)
     case 'JOIN_ROOM': {
       leaveCurrentRoom(ws);
-      const code = (msg.code || '').trim().toUpperCase();
-      const targetRoom = rooms.get(code);
+      let code = (msg.code || '').trim().toUpperCase();
+      let targetRoom = rooms.get(code);
+
+      // Support flexible matching: e.g. "7491" matches "KL-7491", "KL7491" matches "KL-7491"
+      if (!targetRoom) {
+        const cleanInput = code.replace(/[^A-Z0-9]/g, '');
+        for (const [rCode, r] of rooms) {
+          const cleanRoomCode = rCode.replace(/[^A-Z0-9]/g, '');
+          if (rCode.endsWith(`-${code}`) || cleanRoomCode === cleanInput || rCode.toLowerCase() === code.toLowerCase()) {
+            targetRoom = r;
+            code = rCode;
+            break;
+          }
+        }
+      }
 
       if (!targetRoom) {
         safeSend(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: `Room ${code} was not found.` });

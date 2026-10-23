@@ -1,0 +1,29 @@
+{
+  "name": "hide-play-server",
+  "version": "1.0.0",
+  "description": "High performance matchmaking, room relay and WebRTC signaling server for Hide & Play",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "stop": "./stop.sh",
+    "status": "./status.sh",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit"
+  },
+  "keywords": ["hide-and-seek", "multiplayer", "webrtc", "godot"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/ws": "^8.5.14",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

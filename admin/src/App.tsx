@@ -7,19 +7,21 @@ import { PlayersTab } from './components/PlayersTab';
 import { PricingTab } from './components/PricingTab';
 import { MonetizationTab } from './components/MonetizationTab';
 import { SecurityTab } from './components/SecurityTab';
+import { TestersTab } from './components/TestersTab';
 import { 
   LayoutDashboard, 
   Users, 
   Tag, 
   Tv, 
   Shield, 
+  DownloadCloud,
   LogOut, 
   KeyRound, 
   CheckCircle, 
   AlertCircle 
 } from 'lucide-react';
 
-type TabType = 'dashboard' | 'players' | 'pricing' | 'monetization' | 'security';
+type TabType = 'dashboard' | 'players' | 'pricing' | 'monetization' | 'testers' | 'security';
 
 export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -200,6 +202,7 @@ export function App() {
         }}>
           {[
             { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
+            { id: 'testers', label: 'Testers & Downloads', icon: DownloadCloud },
             { id: 'players', label: 'Players & Accounts', icon: Users },
             { id: 'pricing', label: 'Shop & Pricing', icon: Tag },
             { id: 'monetization', label: 'Monetization & Ads', icon: Tv },
@@ -249,6 +252,7 @@ export function App() {
             showToast={showToast} 
           />
         )}
+        {activeTab === 'testers' && <TestersTab onShowToast={showToast} />}
         {activeTab === 'players' && <PlayersTab showToast={showToast} />}
         {activeTab === 'pricing' && <PricingTab showToast={showToast} />}
         {activeTab === 'monetization' && <MonetizationTab showToast={showToast} />}

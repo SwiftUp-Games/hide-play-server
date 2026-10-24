@@ -255,6 +255,12 @@ app.post('/api/game/analytics', (req, res) => {
   if (!event_name) {
     return res.status(400).json({ success: false, message: 'Missing event_name parameter.' });
   }
+
+  // If player starts game or session, count towards game opens
+  if (event_name === 'GAME_START' || event_name === 'PLAYER_JOIN' || event_name === 'SESSION_START') {
+    gameStore.trackGameOpen(player_id);
+  }
+
   const event = gameStore.recordAnalyticsEvent({
     player_id,
     player_name,
@@ -263,6 +269,121 @@ app.post('/api/game/analytics', (req, res) => {
     timestamp: timestamp ? Number(timestamp) : Date.now()
   });
   return res.json({ success: true, event });
+});
+
+// ----------------------------------------------------------------------------
+// Static Assets & Download Landing Page
+// ----------------------------------------------------------------------------
+const publicAssetsPath = path.resolve(__dirname, '../public/assets');
+if (fs.existsSync(publicAssetsPath)) {
+  app.use('/assets', express.static(publicAssetsPath));
+}
+
+const downloadHtmlPath = path.resolve(__dirname, '../public/download.html');
+app.get(['/download', '/download/'], (_req, res) => {
+  if (fs.existsSync(downloadHtmlPath)) {
+    return res.sendFile(downloadHtmlPath);
+  }
+  return res.redirect('/download/apk');
+});
+
+// ----------------------------------------------------------------------------
+// Tester & Download Program Endpoints
+// ----------------------------------------------------------------------------
+// 1. Get Public Download Config
+app.get('/api/download/config', (_req, res) => {
+  return res.json({
+    success: true,
+    config: gameStore.getDownloadConfig(),
+    stats: {
+      online_players: getOnlineStats().online_players
+    }
+  });
+});
+
+// 2. Track Page Visit (Tester Link Clicked)
+app.post('/api/download/track-visit', (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || '';
+  const referrer = req.body?.referrer || req.headers.referer || '';
+  gameStore.trackPageVisit(ip, userAgent, referrer);
+  return res.json({ success: true });
+});
+
+// 3. Track Download Click
+app.post('/api/download/track-click', (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || '';
+  gameStore.trackDownloadClick(ip, userAgent);
+  return res.json({ success: true });
+});
+
+// 4. Download APK direct route (redirects to R2 or streams local apk)
+app.get('/download/apk', (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || '';
+  gameStore.trackDownloadClick(ip, userAgent);
+
+  const config = gameStore.getDownloadConfig();
+  if (config.r2_download_url && config.r2_download_url.trim().length > 0) {
+    return res.redirect(302, config.r2_download_url.trim());
+  }
+
+  // Fallback to local built apk if present
+  const localApkPath = path.resolve(__dirname, '../../hide-play/build/android/HideAndPlay.apk');
+  if (fs.existsSync(localApkPath)) {
+    return res.download(localApkPath, 'HideAndPlay.apk');
+  }
+
+  return res.status(404).send('APK download link is being updated. Please check back shortly!');
+});
+
+// 5. Submit Tester Feedback
+app.post('/api/download/feedback', (req, res) => {
+  const { name, rating, category, device_model, comments } = req.body;
+  if (!comments || comments.trim().length === 0) {
+    return res.status(400).json({ success: false, message: 'Please provide your valuable feedback comments.' });
+  }
+
+  const feedback = gameStore.submitTesterFeedback({
+    name: name || 'Anonymous Tester',
+    rating: Number(rating) || 5,
+    category,
+    device_model: device_model || req.headers['user-agent']?.substring(0, 50) || 'Android Device',
+    comments
+  });
+
+  return res.json({ success: true, message: 'Thank you for your valuable feedback!', feedback });
+});
+
+// 6. Admin Tester Analytics & Config endpoints
+app.get('/api/admin/testers', requireAdmin, (_req, res) => {
+  return res.json({
+    success: true,
+    analytics: gameStore.getTesterAnalytics(),
+    feedbacks: gameStore.getTesterFeedbacks(100),
+    config: gameStore.getDownloadConfig()
+  });
+});
+
+app.post('/api/admin/download/config', requireAdmin, (req, res) => {
+  const updated = gameStore.updateDownloadConfig(req.body);
+  return res.json({ success: true, config: updated, message: 'Download configuration updated successfully!' });
+});
+
+app.post('/api/admin/testers/feedback/status', requireAdmin, (req, res) => {
+  const { id, status } = req.body;
+  if (!id || !status) {
+    return res.status(400).json({ success: false, message: 'Missing id or status.' });
+  }
+  const ok = gameStore.updateTesterFeedbackStatus(id, status);
+  return res.json({ success: ok });
+});
+
+app.delete('/api/admin/testers/feedback/:id', requireAdmin, (req, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const ok = gameStore.deleteTesterFeedback(id);
+  return res.json({ success: ok });
 });
 
 app.get('/health', (_req, res) => {
@@ -340,6 +461,9 @@ function getPublicRoomsSummary() {
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws: WebSocket) => {
+  // Track mobile client opening and connecting to game
+  gameStore.trackGameOpen();
+
   // Send immediate welcome ping with online stats
   const stats = getOnlineStats();
   safeSend(ws, { 

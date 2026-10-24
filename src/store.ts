@@ -55,10 +55,42 @@ export interface AnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
+export interface DownloadConfig {
+  r2_download_url: string;
+  apk_version: string;
+  apk_size_mb: string;
+  apk_release_notes: string[];
+  download_enabled: boolean;
+  target_os: string;
+}
+
+export interface TesterFeedback {
+  id: string;
+  timestamp: number;
+  name: string;
+  rating: number; // 1 to 5
+  category: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general';
+  device_model: string;
+  comments: string;
+  status: 'new' | 'reviewed' | 'resolved';
+}
+
+export interface TesterAnalytics {
+  page_views: number;
+  unique_visitors: number;
+  download_clicks: number;
+  game_opens: number;
+  visitor_devices: Record<string, number>;
+  daily_stats: Record<string, { views: number; downloads: number; game_opens: number }>;
+}
+
 export interface GameAdminData {
   admin_mobile_number: string;
   pricing: PricingCatalog;
   monetization: MonetizationConfig;
+  download_config: DownloadConfig;
+  tester_analytics: TesterAnalytics;
+  tester_feedbacks: TesterFeedback[];
   players: Record<string, PlayerAccount>;
   stats: {
     total_games_completed: number;
@@ -126,6 +158,28 @@ const DEFAULT_DATA: GameAdminData = {
     rewarded_ad_unit_id: 'ca-app-pub-3940256099942544/5224354917',
     test_devices: ['SAMSUNG-S24-ULTRA', 'IPHONE-15-PRO', 'PIXEL-8-PRO']
   },
+  download_config: {
+    r2_download_url: process.env.R2_APK_DOWNLOAD_URL || process.env.R2_DOWNLOAD_URL || '',
+    apk_version: 'v1.2.0-beta',
+    apk_size_mb: '70 MB',
+    apk_release_notes: [
+      'Authentic Kerala village hide & seek gameplay (ഒളിച്ചു കളി)',
+      'Instant 4-digit room code join & matchmaking',
+      'Ultra-crisp 3D chunky action controls & spatial proximity voice bridge',
+      '12+ customizable traditional avatars, dresses, & accessories'
+    ],
+    download_enabled: true,
+    target_os: 'Android 8.0+'
+  },
+  tester_analytics: {
+    page_views: 0,
+    unique_visitors: 0,
+    download_clicks: 0,
+    game_opens: 0,
+    visitor_devices: { Android: 0, iOS: 0, Windows: 0, Mac: 0, Other: 0 },
+    daily_stats: {}
+  },
+  tester_feedbacks: [],
   players: {},
   stats: {
     total_games_completed: 0,
@@ -140,6 +194,7 @@ const DEFAULT_DATA: GameAdminData = {
 class GameStore {
   private data: GameAdminData;
   private activeSessions = new Set<string>();
+  private trackedVisitorIps = new Set<string>();
 
   constructor() {
     this.data = this.loadData();
@@ -158,6 +213,16 @@ class GameStore {
           ...parsed,
           pricing: { ...DEFAULT_DATA.pricing, ...(parsed.pricing || {}) },
           monetization: { ...DEFAULT_DATA.monetization, ...(parsed.monetization || {}) },
+          download_config: { ...DEFAULT_DATA.download_config, ...(parsed.download_config || {}) },
+          tester_analytics: {
+            page_views: parsed.tester_analytics?.page_views || 0,
+            unique_visitors: parsed.tester_analytics?.unique_visitors || 0,
+            download_clicks: parsed.tester_analytics?.download_clicks || 0,
+            game_opens: parsed.tester_analytics?.game_opens || 0,
+            visitor_devices: parsed.tester_analytics?.visitor_devices || { Android: 0, iOS: 0, Windows: 0, Mac: 0, Other: 0 },
+            daily_stats: parsed.tester_analytics?.daily_stats || {}
+          },
+          tester_feedbacks: Array.isArray(parsed.tester_feedbacks) ? parsed.tester_feedbacks : [],
           players: parsed.players || {},
           stats: {
             total_games_completed: parsed.stats?.total_games_completed || 0,
@@ -519,6 +584,153 @@ class GameStore {
       maintenance: false
     };
   }
+
+  // --------------------------------------------------------------------------
+  // DOWNLOAD & TESTER STORAGE CONFIG
+  // --------------------------------------------------------------------------
+  public getDownloadConfig(): DownloadConfig {
+    return this.data.download_config;
+  }
+
+  public updateDownloadConfig(update: Partial<DownloadConfig>): DownloadConfig {
+    this.data.download_config = {
+      ...this.data.download_config,
+      ...update
+    };
+    this.saveData(this.data);
+    return this.data.download_config;
+  }
+
+  // --------------------------------------------------------------------------
+  // TESTER ANALYTICS TRACKING
+  // --------------------------------------------------------------------------
+  private _getTodayKey(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  private _ensureTodayDailyStats() {
+    const today = this._getTodayKey();
+    if (!this.data.tester_analytics.daily_stats[today]) {
+      this.data.tester_analytics.daily_stats[today] = { views: 0, downloads: 0, game_opens: 0 };
+    }
+    return this.data.tester_analytics.daily_stats[today];
+  }
+
+  private _detectDeviceFromUA(ua: string): string {
+    if (!ua) return 'Other';
+    const lower = ua.toLowerCase();
+    if (lower.includes('android')) return 'Android';
+    if (lower.includes('iphone') || lower.includes('ipad') || lower.includes('ios')) return 'iOS';
+    if (lower.includes('windows')) return 'Windows';
+    if (lower.includes('macintosh') || lower.includes('mac os')) return 'Mac';
+    if (lower.includes('linux')) return 'Linux';
+    return 'Other';
+  }
+
+  public trackPageVisit(ip: string, userAgent: string, _referrer?: string): void {
+    this.data.tester_analytics.page_views += 1;
+    const today = this._ensureTodayDailyStats();
+    today.views += 1;
+
+    // Track unique visitor
+    const visitorKey = `${ip}_${this._getTodayKey()}`;
+    if (!this.trackedVisitorIps.has(visitorKey)) {
+      this.trackedVisitorIps.add(visitorKey);
+      this.data.tester_analytics.unique_visitors += 1;
+    }
+
+    // Device breakdown
+    const device = this._detectDeviceFromUA(userAgent);
+    this.data.tester_analytics.visitor_devices[device] = (this.data.tester_analytics.visitor_devices[device] || 0) + 1;
+
+    this.saveData(this.data);
+  }
+
+  public trackDownloadClick(_ip: string, _userAgent: string): void {
+    this.data.tester_analytics.download_clicks += 1;
+    const today = this._ensureTodayDailyStats();
+    today.downloads += 1;
+    this.saveData(this.data);
+  }
+
+  public trackGameOpen(_playerId?: string): void {
+    this.data.tester_analytics.game_opens += 1;
+    const today = this._ensureTodayDailyStats();
+    today.game_opens += 1;
+    this.saveData(this.data);
+  }
+
+  public getTesterAnalytics() {
+    const views = this.data.tester_analytics.page_views;
+    const downloads = this.data.tester_analytics.download_clicks;
+    const opens = this.data.tester_analytics.game_opens;
+
+    const conversionRate = views > 0 ? Number(((downloads / views) * 100).toFixed(1)) : 0;
+    const openRate = downloads > 0 ? Number(((opens / downloads) * 100).toFixed(1)) : 0;
+
+    return {
+      ...this.data.tester_analytics,
+      feedbacks_count: this.data.tester_feedbacks.length,
+      conversion_rate: conversionRate,
+      open_rate: openRate
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // TESTER FEEDBACK
+  // --------------------------------------------------------------------------
+  public submitTesterFeedback(feedback: {
+    name: string;
+    rating: number;
+    category?: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general';
+    device_model?: string;
+    comments: string;
+  }): TesterFeedback {
+    const entry: TesterFeedback = {
+      id: 'fb_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      timestamp: Date.now(),
+      name: (feedback.name || 'Anonymous Tester').trim().substring(0, 50),
+      rating: Math.max(1, Math.min(5, Math.round(feedback.rating || 5))),
+      category: feedback.category || 'gameplay',
+      device_model: (feedback.device_model || 'Unknown Device').trim().substring(0, 60),
+      comments: (feedback.comments || '').trim().substring(0, 1000),
+      status: 'new'
+    };
+
+    this.data.tester_feedbacks.unshift(entry);
+    // Keep last 200 feedback submissions
+    if (this.data.tester_feedbacks.length > 200) {
+      this.data.tester_feedbacks = this.data.tester_feedbacks.slice(0, 200);
+    }
+    this.saveData(this.data);
+    return entry;
+  }
+
+  public getTesterFeedbacks(limit: number = 50): TesterFeedback[] {
+    return this.data.tester_feedbacks.slice(0, limit);
+  }
+
+  public updateTesterFeedbackStatus(id: string, status: 'new' | 'reviewed' | 'resolved'): boolean {
+    const item = this.data.tester_feedbacks.find(f => f.id === id);
+    if (item) {
+      item.status = status;
+      this.saveData(this.data);
+      return true;
+    }
+    return false;
+  }
+
+  public deleteTesterFeedback(id: string): boolean {
+    const idx = this.data.tester_feedbacks.findIndex(f => f.id === id);
+    if (idx !== -1) {
+      this.data.tester_feedbacks.splice(idx, 1);
+      this.saveData(this.data);
+      return true;
+    }
+    return false;
+  }
 }
 
 export const gameStore = new GameStore();
+

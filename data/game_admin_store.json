@@ -70,6 +70,34 @@
       "PIXEL-8-PRO"
     ]
   },
+  "download_config": {
+    "r2_download_url": "",
+    "apk_version": "v1.2.0-beta",
+    "apk_size_mb": "70 MB",
+    "apk_release_notes": [
+      "Authentic Kerala village hide & seek gameplay (ഒളിച്ചു കളി)",
+      "Instant 4-digit room code join & matchmaking",
+      "Ultra-crisp 3D chunky action controls & spatial proximity voice bridge",
+      "12+ customizable traditional avatars, dresses, & accessories"
+    ],
+    "download_enabled": true,
+    "target_os": "Android 8.0+"
+  },
+  "tester_analytics": {
+    "page_views": 0,
+    "unique_visitors": 0,
+    "download_clicks": 0,
+    "game_opens": 0,
+    "visitor_devices": {
+      "Android": 0,
+      "iOS": 0,
+      "Windows": 0,
+      "Mac": 0,
+      "Other": 0
+    },
+    "daily_stats": {}
+  },
+  "tester_feedbacks": [],
   "players": {},
   "stats": {
     "total_games_completed": 0,

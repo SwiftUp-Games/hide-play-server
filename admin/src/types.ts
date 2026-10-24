@@ -96,3 +96,35 @@ export interface MonetizationConfig {
   rewarded_ad_unit_id: string;
   test_devices: string[];
 }
+
+export interface DownloadConfig {
+  r2_download_url: string;
+  apk_version: string;
+  apk_size_mb: string;
+  apk_release_notes: string[];
+  download_enabled: boolean;
+  target_os: string;
+}
+
+export interface TesterFeedback {
+  id: string;
+  timestamp: number;
+  name: string;
+  rating: number;
+  category: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general';
+  device_model: string;
+  comments: string;
+  status: 'new' | 'reviewed' | 'resolved';
+}
+
+export interface TesterAnalytics {
+  page_views: number;
+  unique_visitors: number;
+  download_clicks: number;
+  game_opens: number;
+  feedbacks_count: number;
+  conversion_rate: number;
+  open_rate: number;
+  visitor_devices: Record<string, number>;
+  daily_stats: Record<string, { views: number; downloads: number; game_opens: number }>;
+}

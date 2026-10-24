@@ -1,4 +1,4 @@
-import type { DashboardData, PlayerAccount, PricingCatalog, MonetizationConfig } from './types';
+import type { DashboardData, PlayerAccount, PricingCatalog, MonetizationConfig, DownloadConfig, TesterFeedback, TesterAnalytics } from './types';
 
 // In production, endpoints are relative to the current host (same server). In dev, points to localhost:8080.
 const API_BASE = window.location.port === '5173' ? 'http://localhost:8080' : '';
@@ -150,6 +150,36 @@ export const adminApi = {
   async closeRoom(roomCode: string): Promise<{ success: boolean }> {
     return request(`/api/admin/rooms/${roomCode}/close`, {
       method: 'POST'
+    });
+  },
+
+  // Testers & Download Program
+  async getTestersData(): Promise<{
+    success: boolean;
+    analytics: TesterAnalytics;
+    feedbacks: TesterFeedback[];
+    config: DownloadConfig;
+  }> {
+    return request('/api/admin/testers');
+  },
+
+  async updateDownloadConfig(config: Partial<DownloadConfig>): Promise<{ success: boolean; config: DownloadConfig; message: string }> {
+    return request('/api/admin/download/config', {
+      method: 'POST',
+      body: JSON.stringify(config)
+    });
+  },
+
+  async updateFeedbackStatus(id: string, status: 'new' | 'reviewed' | 'resolved'): Promise<{ success: boolean }> {
+    return request('/api/admin/testers/feedback/status', {
+      method: 'POST',
+      body: JSON.stringify({ id, status })
+    });
+  },
+
+  async deleteFeedback(id: string): Promise<{ success: boolean }> {
+    return request(`/api/admin/testers/feedback/${id}`, {
+      method: 'DELETE'
     });
   }
 };

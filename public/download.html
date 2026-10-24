@@ -3,479 +3,408 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hide & Play (ഒളിച്ചു കളി) - Android Early Access & Tester Community</title>
+  <title>Hide & Play (ഒളിച്ചു കളി) - Download</title>
   
-  <!-- Open Graph & WhatsApp Sharing Meta Tags -->
-  <meta property="og:title" content="Hide & Play (ഒളിച്ചു കളി) - Android Early Access Download">
-  <meta property="og:description" content="Be a part of our testing community! Download the latest Android APK, play Kerala village 3D hide & seek with proximity voice, and share your valuable feedback.">
+  <!-- Open Graph -->
+  <meta property="og:title" content="Hide & Play (ഒളിച്ചു കളി) - Android Download">
+  <meta property="og:description" content="Play the authentic 3D Kerala Village Hide & Seek game with proximity voice chat!">
   <meta property="og:image" content="/assets/icon.png">
   <meta property="og:type" content="website">
-  <meta name="theme-color" content="#0d3d24">
+  <meta name="theme-color" content="#071b10">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/assets/icon.png">
-  
-  <!-- Modern Fonts -->
+
+  <!-- Google Game Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --bg-dark: #07190f;
-      --bg-card: rgba(14, 43, 27, 0.82);
-      --bg-card-hover: rgba(20, 61, 38, 0.95);
-      --border-card: rgba(84, 180, 114, 0.22);
-      --primary-gold: #ffb703;
-      --primary-amber: #fb8500;
-      --primary-green: #2ecc71;
-      --green-dark: #27ae60;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-gold: #fde047;
-      --font-display: 'Fredoka', 'Outfit', sans-serif;
-      --font-body: 'Outfit', 'Inter', sans-serif;
-      --shadow-3d: 0 8px 0 #1b5e20, 0 15px 25px rgba(0, 0, 0, 0.45);
-      --shadow-3d-active: 0 2px 0 #1b5e20, 0 5px 12px rgba(0, 0, 0, 0.4);
-      --shadow-gold: 0 8px 0 #b45309, 0 15px 25px rgba(245, 158, 11, 0.35);
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
-    body {
-      background-color: var(--bg-dark);
-      background-image: 
-        radial-gradient(circle at 50% 10%, rgba(39, 174, 96, 0.18) 0%, transparent 60%),
-        radial-gradient(circle at 10% 40%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
-        radial-gradient(circle at 90% 80%, rgba(13, 148, 136, 0.12) 0%, transparent 60%);
-      color: var(--text-main);
-      font-family: var(--font-body);
-      min-height: 100vh;
-      overflow-x: hidden;
-      line-height: 1.5;
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #06180e;
+      font-family: 'Fredoka', 'Outfit', sans-serif;
+      color: #fff;
     }
 
-    /* Ambient Background Pattern */
-    .bg-pattern {
-      position: fixed;
-      inset: 0;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-      background-size: 28px 28px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 24px 18px 60px;
+    /* Immersive Game Backdrop */
+    .viewport-scene {
       position: relative;
-      z-index: 1;
-    }
-
-    /* Header & Badge */
-    .header {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-
-    .pill-badge {
-      display: inline-flex;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      background: rgba(255, 183, 3, 0.15);
-      border: 1px solid rgba(255, 183, 3, 0.35);
+      padding: 20px 20px 28px;
+      overflow: hidden;
+      background: 
+        radial-gradient(circle at 50% 30%, rgba(39, 174, 96, 0.28) 0%, transparent 65%),
+        radial-gradient(circle at 15% 75%, rgba(245, 158, 11, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 85% 75%, rgba(16, 185, 129, 0.18) 0%, transparent 50%),
+        linear-gradient(180deg, #071c11 0%, #04100a 100%);
+    }
+
+    /* Background Ambient Rays & Fireflies */
+    .ambient-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, #ffd166, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 40px 70px, #a7f3d0, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 50px 160px, #fde047, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 90px 40px, #34d399, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 130px 80px, #f59e0b, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 160px 120px, #ecfdf5, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      opacity: 0.55;
+      animation: floatStars 24s linear infinite;
+    }
+
+    @keyframes floatStars {
+      from { transform: translateY(0); }
+      to { transform: translateY(-200px); }
+    }
+
+    /* Top Gamified Pill Bar */
+    .top-bar {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .badge-pill {
+      background: rgba(14, 43, 27, 0.85);
+      border: 2px solid rgba(255, 183, 3, 0.4);
       padding: 6px 14px;
       border-radius: 999px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--primary-gold);
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(255, 183, 3, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
     }
 
-    .live-pulse {
+    .live-dot {
       width: 8px;
       height: 8px;
-      background: #22c55e;
+      background: #2ecc71;
       border-radius: 50%;
-      box-shadow: 0 0 10px #22c55e;
-      animation: pulse 1.8s infinite;
+      box-shadow: 0 0 10px #2ecc71;
+      animation: pulse 1.6s infinite;
     }
 
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.3); }
+      50% { opacity: 0.35; transform: scale(1.3); }
     }
 
-    /* Logo & Title */
-    .logo-container {
-      position: relative;
-      width: 140px;
-      height: 140px;
-      margin: 0 auto 16px;
-      border-radius: 32px;
-      background: linear-gradient(145deg, #164e2e, #0a2516);
-      padding: 8px;
-      box-shadow: 
-        0 12px 30px rgba(0, 0, 0, 0.6),
-        inset 0 2px 4px rgba(255, 255, 255, 0.2),
-        0 0 0 3px rgba(255, 183, 3, 0.3);
-      animation: float 4s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-
-    .logo-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      border-radius: 24px;
-    }
-
-    .title {
-      font-family: var(--font-display);
-      font-size: 34px;
+    .badge-text {
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: -0.5px;
-      color: #fff;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-      margin-bottom: 4px;
-    }
-
-    .title span {
-      background: linear-gradient(135deg, #ffd166, #ffb703, #fb8500);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .subtitle-malayalam {
-      font-family: var(--font-display);
-      font-size: 19px;
-      color: var(--primary-gold);
-      font-weight: 600;
-      margin-bottom: 12px;
+      color: #ffd166;
       letter-spacing: 0.5px;
     }
 
-    .tagline {
-      font-size: 15px;
-      color: #cbd5e1;
-      max-width: 480px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    /* 3D Main Download Card */
-    .download-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      backdrop-filter: blur(20px);
-      border-radius: 26px;
-      padding: 26px 20px;
-      margin-bottom: 24px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .download-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #2ecc71, #ffb703, #2ecc71);
-      background-size: 200% 100%;
-      animation: gradientShift 3s linear infinite;
-    }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 0%; }
-      100% { background-position: 200% 0%; }
-    }
-
-    /* Mega 3D Download Button */
-    .btn-download-3d {
+    .btn-feedback-icon {
+      background: rgba(14, 43, 27, 0.85);
+      border: 2px solid rgba(84, 180, 114, 0.4);
+      color: #ffd166;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
-      width: 100%;
-      background: linear-gradient(180deg, #38ef7d 0%, #11998e 100%);
-      color: #052e16;
-      font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 700;
-      padding: 18px 24px;
-      border-radius: 20px;
-      text-decoration: none;
-      border: none;
+      font-size: 18px;
       cursor: pointer;
-      box-shadow: var(--shadow-3d);
-      transition: all 0.12s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.2);
+      transition: transform 0.12s ease, border-color 0.2s ease;
+    }
+
+    .btn-feedback-icon:active {
+      transform: scale(0.92);
+      border-color: #ffd166;
+    }
+
+    /* Center Artwork Masterpiece Showcase */
+    .center-stage {
       position: relative;
-      user-select: none;
-    }
-
-    .btn-download-3d:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 0 #1b5e20, 0 18px 30px rgba(0, 0, 0, 0.5);
-    }
-
-    .btn-download-3d:active {
-      transform: translateY(6px);
-      box-shadow: var(--shadow-3d-active);
-    }
-
-    .btn-download-icon {
-      font-size: 28px;
-      display: inline-block;
-      animation: bounce 2s infinite;
-    }
-
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-6px); }
-      60% { transform: translateY(-3px); }
-    }
-
-    .btn-download-text {
-      text-align: left;
-    }
-
-    .btn-download-title {
-      display: block;
-      line-height: 1.1;
-      color: #064e3b;
-    }
-
-    .btn-download-sub {
-      font-family: var(--font-body);
-      font-size: 12px;
-      font-weight: 600;
-      color: rgba(6, 78, 59, 0.85);
-      letter-spacing: 0.4px;
-    }
-
-    /* Meta Badges Under Button */
-    .download-meta {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
-      margin-top: 18px;
-      flex-wrap: wrap;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .meta-item strong {
-      color: #e2e8f0;
-    }
-
-    /* Feature Highlights */
-    .section-title {
-      font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    @media (max-width: 500px) {
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: 18px;
-      padding: 16px;
-      backdrop-filter: blur(12px);
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(255, 183, 3, 0.4);
-    }
-
-    .feature-icon {
-      font-size: 26px;
-      margin-bottom: 8px;
-    }
-
-    .feature-title {
-      font-family: var(--font-display);
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 4px;
-    }
-
-    .feature-desc {
-      font-size: 12.5px;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    /* Avatars Showcase */
-    .avatars-strip {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: 22px;
-      padding: 16px;
-      margin-bottom: 24px;
-      text-align: center;
-    }
-
-    .avatars-row {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      overflow-x: auto;
-      padding: 8px 4px;
-      scrollbar-width: none;
-    }
-
-    .avatars-row::-webkit-scrollbar {
-      display: none;
-    }
-
-    .avatar-pill {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 8px 12px;
+      width: 100%;
+      max-width: 480px;
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      min-width: 76px;
-      flex-shrink: 0;
-      transition: transform 0.2s ease;
+      justify-content: center;
+      z-index: 5;
     }
 
-    .avatar-pill:hover {
-      transform: scale(1.08);
-      border-color: var(--primary-gold);
+    /* Ambient Spotlight behind Logo */
+    .stage-glow {
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 183, 3, 0.25) 0%, rgba(39, 174, 96, 0.15) 50%, transparent 75%);
+      filter: blur(28px);
+      pointer-events: none;
+      animation: pulseGlow 4s ease-in-out infinite alternate;
     }
 
-    .avatar-pill img {
-      width: 44px;
-      height: 44px;
+    @keyframes pulseGlow {
+      from { transform: scale(0.9); opacity: 0.6; }
+      to { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* Main Floating 3D Logo Artwork */
+    .logo-hero {
+      position: relative;
+      width: 90%;
+      max-width: 360px;
+      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.65));
+      animation: heroFloat 4.2s ease-in-out infinite;
+      cursor: pointer;
+    }
+
+    @keyframes heroFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(0.8deg); }
+    }
+
+    .logo-hero img {
+      width: 100%;
+      height: auto;
+      display: block;
       object-fit: contain;
     }
 
-    .avatar-pill span {
+    /* Floating Village Characters */
+    .character-left {
+      position: absolute;
+      left: 2%;
+      bottom: 6%;
+      width: 82px;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
+      animation: charBobLeft 3.6s ease-in-out infinite;
+      z-index: 4;
+    }
+
+    @keyframes charBobLeft {
+      0%, 100% { transform: translateY(0) rotate(-3deg); }
+      50% { transform: translateY(-8px) rotate(-1deg); }
+    }
+
+    .character-right {
+      position: absolute;
+      right: 2%;
+      bottom: 6%;
+      width: 82px;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
+      animation: charBobRight 3.9s ease-in-out infinite;
+      z-index: 4;
+    }
+
+    @keyframes charBobRight {
+      0%, 100% { transform: translateY(0) rotate(3deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    /* Bottom Action Area with Chunky 3D Button */
+    .bottom-action-panel {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    /* Massive Tactile 3D Gamified Download Button */
+    .btn-3d-download {
+      position: relative;
+      width: 100%;
+      background: linear-gradient(180deg, #2fe075 0%, #159c4e 100%);
+      border: 3px solid #6ee7b7;
+      border-radius: 26px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      /* Authentic Chunky 3D Cube Shadow */
+      box-shadow: 
+        0 10px 0 #0d5f2f,
+        0 16px 28px rgba(0, 0, 0, 0.65),
+        inset 0 2px 4px rgba(255, 255, 255, 0.45);
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .btn-3d-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 0 #0d5f2f,
+        0 20px 32px rgba(0, 0, 0, 0.7),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-3d-download:active {
+      transform: translateY(8px);
+      box-shadow: 
+        0 2px 0 #0d5f2f,
+        0 6px 14px rgba(0, 0, 0, 0.5),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-icon-wrapper {
+      width: 46px;
+      height: 46px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+      animation: pulseIcon 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseIcon {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    .btn-text-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.1;
+    }
+
+    .btn-main-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #042914;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-corner-badge {
+      position: absolute;
+      top: -12px;
+      right: 18px;
+      background: linear-gradient(135deg, #ffd166, #f59e0b);
+      color: #451a03;
       font-size: 11px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35), 0 2px 0 #b45309;
+      border: 1px solid #fef3c7;
+      letter-spacing: 0.4px;
+    }
+
+    /* Minimalist Sub-Status */
+    .status-sub-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: #94a3b8;
       font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    .status-sub-pill span {
       color: #cbd5e1;
     }
 
-    /* 3-Step Install Guide */
-    .guide-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: 22px;
+    /* Gamified Feedback Popup Modal (Clean & Non-Intrusive) */
+    .feedback-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
       padding: 20px;
-      margin-bottom: 24px;
     }
 
-    .step-item {
+    .feedback-modal-overlay.active {
       display: flex;
-      gap: 14px;
-      margin-bottom: 16px;
-      align-items: flex-start;
+      animation: modalFadeIn 0.2s ease forwards;
     }
 
-    .step-item:last-child {
-      margin-bottom: 0;
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
 
-    .step-num {
-      width: 32px;
-      height: 32px;
+    .feedback-box {
+      background: linear-gradient(165deg, #0e2d1d, #07190f);
+      border: 2px solid rgba(255, 183, 3, 0.45);
+      border-radius: 28px;
+      width: 100%;
+      max-width: 380px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      position: relative;
+    }
+
+    .btn-close-modal {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #ffb703, #fb8500);
-      color: #07190f;
-      font-family: var(--font-display);
-      font-weight: 700;
+      cursor: pointer;
       font-size: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      box-shadow: 0 4px 10px rgba(251, 133, 0, 0.35);
     }
 
-    .step-content h4 {
-      font-family: var(--font-display);
-      font-size: 15px;
-      color: #fff;
-      margin-bottom: 2px;
-    }
-
-    .step-content p {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    /* Feedback Form Section */
-    .feedback-card {
-      background: var(--bg-card);
-      border: 1px solid rgba(255, 183, 3, 0.35);
-      border-radius: 24px;
-      padding: 24px 20px;
-      margin-bottom: 24px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
-      position: relative;
-    }
-
-    .feedback-card h3 {
-      font-family: var(--font-display);
+    .feedback-box h3 {
       font-size: 20px;
-      color: var(--primary-gold);
-      margin-bottom: 6px;
+      color: #ffd166;
+      margin-bottom: 4px;
     }
 
-    .feedback-card p {
-      font-size: 13.5px;
-      color: #cbd5e1;
-      margin-bottom: 18px;
+    .feedback-box p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 16px;
     }
 
-    .star-rating {
+    .star-row {
       display: flex;
       justify-content: center;
       gap: 10px;
@@ -488,519 +417,287 @@
       font-size: 32px;
       cursor: pointer;
       color: rgba(255, 255, 255, 0.2);
-      transition: transform 0.15s ease, color 0.15s ease;
+      transition: transform 0.12s ease, color 0.12s ease;
     }
 
-    .star-btn.active, .star-btn:hover {
-      color: var(--primary-gold);
-      transform: scale(1.18);
+    .star-btn.active {
+      color: #ffb703;
+      transform: scale(1.15);
     }
 
-    .rating-label {
-      text-align: center;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-gold);
-      margin-bottom: 16px;
-      min-height: 20px;
-    }
-
-    .chips-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .chip-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #e2e8f0;
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .chip-btn.active {
-      background: rgba(255, 183, 3, 0.2);
-      border-color: var(--primary-gold);
-      color: var(--primary-gold);
-      font-weight: 600;
-    }
-
-    .form-group {
-      margin-bottom: 14px;
-    }
-
-    .form-input, .form-textarea {
+    .modal-input, .modal-textarea {
       width: 100%;
-      background: rgba(7, 25, 15, 0.85);
-      border: 1px solid rgba(84, 180, 114, 0.3);
+      background: rgba(5, 18, 11, 0.85);
+      border: 1px solid rgba(84, 180, 114, 0.35);
       border-radius: 14px;
-      padding: 12px 14px;
+      padding: 10px 14px;
       color: #fff;
-      font-family: var(--font-body);
-      font-size: 14px;
+      font-family: inherit;
+      font-size: 13.5px;
+      margin-bottom: 10px;
       outline: none;
-      transition: border-color 0.2s ease;
     }
 
-    .form-input:focus, .form-textarea:focus {
-      border-color: var(--primary-gold);
-      box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.15);
+    .modal-input:focus, .modal-textarea:focus {
+      border-color: #ffd166;
     }
 
-    .form-textarea {
-      min-height: 95px;
-      resize: vertical;
+    .modal-textarea {
+      min-height: 80px;
+      resize: none;
     }
 
-    .btn-submit-feedback {
+    .btn-modal-submit {
       width: 100%;
-      background: linear-gradient(135deg, #ffb703, #fb8500);
-      color: #07190f;
-      font-family: var(--font-display);
-      font-size: 16px;
-      font-weight: 700;
-      padding: 14px;
-      border-radius: 14px;
+      background: linear-gradient(180deg, #ffb703, #fb8500);
+      color: #2e1003;
       border: none;
-      cursor: pointer;
-      box-shadow: var(--shadow-gold);
-      transition: all 0.12s ease;
-    }
-
-    .btn-submit-feedback:active {
-      transform: translateY(4px);
-    }
-
-    .feedback-success {
-      display: none;
-      text-align: center;
-      padding: 24px 12px;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Toast Notification */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(120%);
-      background: rgba(7, 25, 15, 0.95);
-      border: 1px solid #2ecc71;
-      color: #fff;
-      padding: 14px 22px;
       border-radius: 16px;
+      padding: 13px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #b45309, 0 8px 18px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
+    }
+
+    .btn-modal-submit:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #b45309;
+    }
+
+    /* Toast */
+    .toast-pill {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-150%);
+      background: #0f3d24;
+      border: 2px solid #2ecc71;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 200;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 100;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      max-width: 90%;
-      text-align: center;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .toast.show {
+    .toast-pill.show {
       transform: translateX(-50%) translateY(0);
-    }
-
-    /* Footer */
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 30px;
     }
   </style>
 </head>
 <body>
-  <div class="bg-pattern"></div>
+  <div class="viewport-scene">
+    <div class="ambient-particles"></div>
 
-  <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <div class="pill-badge">
-        <span class="live-pulse"></span>
-        <span>Kerala Early Access • Tester Program</span>
+    <!-- Top Gamified Bar -->
+    <div class="top-bar">
+      <div class="badge-pill">
+        <span class="live-dot"></span>
+        <span class="badge-text">ഒളിച്ചു കളി • BETA TEST</span>
       </div>
 
-      <div class="logo-container">
-        <img src="/assets/icon.png" alt="Hide & Play Logo" onerror="this.src='/assets/logo_web.png'">
-      </div>
-
-      <h1 class="title">HIDE & <span>PLAY</span></h1>
-      <div class="subtitle-malayalam">ഒളിച്ചു കളി • Online 3D Arena</div>
-      <p class="tagline">
-        Be a part of our testing community! Download the game, test with friends, and let us know your valuable feedback before global launch.
-      </p>
-    </header>
-
-    <!-- Download Card -->
-    <section class="download-card">
-      <button id="downloadBtn" class="btn-download-3d">
-        <span class="btn-download-icon">📥</span>
-        <div class="btn-download-text">
-          <span class="btn-download-title">Download Android APK</span>
-          <span class="btn-download-sub" id="apkSubText">v1.2.0-beta • 70 MB • Direct & Fast</span>
-        </div>
+      <button id="openFeedbackBtn" class="btn-feedback-icon" title="Feedback">
+        ⭐
       </button>
+    </div>
 
-      <div class="download-meta">
-        <div class="meta-item">
-          <span>⚡ High-Speed CDN:</span>
-          <strong>Cloudflare R2</strong>
-        </div>
-        <div class="meta-item">
-          <span>📱 Requires:</span>
-          <strong>Android 8.0+</strong>
-        </div>
-        <div class="meta-item">
-          <span>👥 Online Now:</span>
-          <strong id="onlineStats">Live</strong>
-        </div>
-      </div>
-    </section>
+    <!-- Center Stage (Visual Game Masterpiece) -->
+    <div class="center-stage">
+      <div class="stage-glow"></div>
 
-    <!-- Game Features -->
-    <h3 class="section-title">✨ What's Inside This Beta</h3>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🌳</div>
-        <div class="feature-title">Authentic Kerala Village</div>
-        <div class="feature-desc">Hide behind banana trees, thatched huts, and courtyards, or play seeker with dynamic radar!</div>
-      </div>
+      <!-- Character peeking left -->
+      <img src="/assets/avatars/traditional.png" class="character-left" alt="Kuttan">
 
-      <div class="feature-card">
-        <div class="feature-icon">🎙️</div>
-        <div class="feature-title">Proximity Voice Chat</div>
-        <div class="feature-desc">Talk live with nearby players! Whisper to fellow hiders or call out when you spot someone.</div>
-      </div>
+      <!-- Character peeking right -->
+      <img src="/assets/avatars/girl_default.png" class="character-right" alt="Malavika">
 
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div class="feature-title">Instant 4-Digit Rooms</div>
-        <div class="feature-desc">Create custom rooms and share a 4-digit code. Join friends in under 5 seconds with zero hassle.</div>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <div class="feature-title">Smart Practice Bots</div>
-        <div class="feature-desc">Play solo anytime against intelligent AI bots that navigate real terrain and hide smartly.</div>
+      <!-- Official Game Artwork Logo -->
+      <div class="logo-hero">
+        <img src="/assets/game_title_logo_opt.png" alt="Hide & Play Game Logo" onerror="this.src='/assets/icon.png'">
       </div>
     </div>
 
-    <!-- Avatars Showcase -->
-    <div class="avatars-strip">
-      <h4 style="font-family: var(--font-display); font-size: 15px; color: var(--primary-gold); margin-bottom: 4px;">
-        🎭 12+ Kerala Traditional Heroes
-      </h4>
-      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
-        Customize your hero with mundu, turbans, hats, and iconic village outfits!
-      </p>
-      <div class="avatars-row">
-        <div class="avatar-pill">
-          <img src="/assets/avatars/traditional.png" alt="Traditional">
-          <span>Kuttan</span>
+    <!-- Bottom Action (Tactile 3D Download Button) -->
+    <div class="bottom-action-panel">
+      <a id="downloadBtn" href="/download/apk" class="btn-3d-download">
+        <span class="btn-corner-badge" id="apkBadge">Android • 70 MB</span>
+        <div class="btn-icon-wrapper">
+          📥
         </div>
-        <div class="avatar-pill">
-          <img src="/assets/avatars/police.png" alt="Police">
-          <span>Inspector</span>
+        <div class="btn-text-content">
+          <span class="btn-main-title">DOWNLOAD APK</span>
         </div>
-        <div class="avatar-pill">
-          <img src="/assets/avatars/girl_default.png" alt="Girl Default">
-          <span>Malavika</span>
-        </div>
-        <div class="avatar-pill">
-          <img src="/assets/avatars/pilot.png" alt="Pilot">
-          <span>Pilot</span>
-        </div>
-        <div class="avatar-pill">
-          <img src="/assets/avatars/ninja.png" alt="Ninja">
-          <span>Shadow</span>
-        </div>
-        <div class="avatar-pill">
-          <img src="/assets/avatars/explorer.png" alt="Explorer">
-          <span>Safari</span>
-        </div>
+      </a>
+
+      <div class="status-sub-pill">
+        <span>⚡ High-Speed Direct CDN</span>
+        <span>•</span>
+        <span id="playerCounter">Testing Live</span>
       </div>
     </div>
-
-    <!-- 3-Step Install Guide -->
-    <section class="guide-card">
-      <h3 class="section-title">📲 How to Install in 3 Easy Steps</h3>
-      
-      <div class="step-item">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <h4>Tap Download APK</h4>
-          <p>Click the big green button above to download <code>HideAndPlay.apk</code> directly to your Android device.</p>
-        </div>
-      </div>
-
-      <div class="step-item">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <h4>Allow Install from Browser</h4>
-          <p>If prompted by Android, tap <em>Settings</em> and enable <em>"Allow from this source"</em> for your browser.</p>
-        </div>
-      </div>
-
-      <div class="step-item">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <h4>Open & Play!</h4>
-          <p>Tap <em>Install</em>, launch Hide & Play, choose your avatar, and start hiding with friends!</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Valuable Feedback Form -->
-    <section class="feedback-card" id="feedbackSection">
-      <div id="feedbackFormContainer">
-        <h3>💬 Share Your Valuable Feedback</h3>
-        <p>Your suggestions directly shape the game before we launch on Google Play Store!</p>
-
-        <!-- Star Rating -->
-        <div class="star-rating" id="starContainer">
-          <button type="button" class="star-btn active" data-rating="1">★</button>
-          <button type="button" class="star-btn active" data-rating="2">★</button>
-          <button type="button" class="star-btn active" data-rating="3">★</button>
-          <button type="button" class="star-btn active" data-rating="4">★</button>
-          <button type="button" class="star-btn active" data-rating="5">★</button>
-        </div>
-        <div class="rating-label" id="ratingLabel">5 / 5 - Absolutely Loved It! 🌟</div>
-
-        <!-- Category Chips -->
-        <div class="chips-group" id="categoryChips">
-          <button type="button" class="chip-btn active" data-cat="gameplay">🎮 Gameplay</button>
-          <button type="button" class="chip-btn" data-cat="voice">🎙️ Voice Chat</button>
-          <button type="button" class="chip-btn" data-cat="performance">⚡ Performance</button>
-          <button type="button" class="chip-btn" data-cat="bugs">🐛 Bug Report</button>
-          <button type="button" class="chip-btn" data-cat="general">💡 Idea / Suggestion</button>
-        </div>
-
-        <form id="feedbackForm">
-          <div class="form-group">
-            <input type="text" id="testerName" class="form-input" placeholder="Your Name or Nickname (e.g. Rahul)" required>
-          </div>
-
-          <div class="form-group">
-            <input type="text" id="deviceModel" class="form-input" placeholder="Device Model (e.g. Samsung Galaxy S24, Redmi Note 12)">
-          </div>
-
-          <div class="form-group">
-            <textarea id="testerComments" class="form-textarea" placeholder="Tell us what you liked, what felt laggy, or any cool ideas you'd love to see..." required></textarea>
-          </div>
-
-          <button type="submit" id="submitBtn" class="btn-submit-feedback">
-            Send Feedback to Dev Team 🚀
-          </button>
-        </form>
-      </div>
-
-      <!-- Success State -->
-      <div id="feedbackSuccess" class="feedback-success">
-        <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
-        <h3 style="color: #2ecc71; margin-bottom: 8px;">Nandi! Thank You for Your Feedback!</h3>
-        <p style="color: #cbd5e1; font-size: 14px;">
-          Our developer team has received your review. We are actively optimizing the game based on your testing!
-        </p>
-        <button type="button" id="submitAnotherBtn" class="chip-btn" style="margin-top: 14px; padding: 8px 16px;">
-          Submit Another Note
-        </button>
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <p>© 2026 Hide & Play Studio • Kerala Village Hide & Seek</p>
-      <p style="margin-top: 4px; color: #475569;">High-speed tester builds distributed via Cloudflare R2 Storage</p>
-    </footer>
   </div>
 
-  <!-- Toast Element -->
-  <div id="toast" class="toast">
+  <!-- Minimal Feedback Modal -->
+  <div id="feedbackOverlay" class="feedback-modal-overlay">
+    <div class="feedback-box">
+      <button id="closeModalBtn" class="btn-close-modal">✕</button>
+      <h3>Tester Feedback</h3>
+      <p>How did the game feel?</p>
+
+      <div class="star-row" id="starRow">
+        <button type="button" class="star-btn active" data-val="1">★</button>
+        <button type="button" class="star-btn active" data-val="2">★</button>
+        <button type="button" class="star-btn active" data-val="3">★</button>
+        <button type="button" class="star-btn active" data-val="4">★</button>
+        <button type="button" class="star-btn active" data-val="5">★</button>
+      </div>
+
+      <input type="text" id="testerNameInput" class="modal-input" placeholder="Your Name">
+      <textarea id="testerCommentsInput" class="modal-textarea" placeholder="Your thoughts or suggestions..."></textarea>
+
+      <button id="sendFeedbackBtn" class="btn-modal-submit">Send ⭐</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast-pill">
     <span>✅</span>
-    <span id="toastMsg">Download started!</span>
+    <span id="toastText">Download started!</span>
   </div>
+
+  <!-- Audio Element for tactile button click -->
+  <audio id="clickAudio" src="/assets/click.wav" preload="auto"></audio>
 
   <script>
-    // State
     let currentRating = 5;
-    let currentCategory = 'gameplay';
     let downloadUrl = '/download/apk';
+    const clickSound = document.getElementById('clickAudio');
 
-    const ratingDescriptions = {
-      1: "1 / 5 - Needs Major Fixes ⚠️",
-      2: "2 / 5 - Fair, but has issues 😐",
-      3: "3 / 5 - Good & Playable 🙂",
-      4: "4 / 5 - Very Fun Experience! 😃",
-      5: "5 / 5 - Absolutely Loved It! 🌟"
-    };
-
-    // Auto-detect Device
-    function detectDevice() {
-      const ua = navigator.userAgent;
-      let model = 'Android Device';
-      const match = ua.match(/\(([^)]+)\)/);
-      if (match && match[1]) {
-        const parts = match[1].split(';');
-        for (const p of parts) {
-          if (p.includes('Build/') || p.includes('SM-') || p.includes('Pixel') || p.includes('Redmi') || p.includes('OnePlus')) {
-            model = p.replace('Build/', '').trim();
-            break;
-          }
+    function playTapSound() {
+      try {
+        if (clickSound) {
+          clickSound.currentTime = 0;
+          clickSound.play().catch(() => {});
         }
-      }
-      return model;
+      } catch (e) {}
     }
 
-    // Elements
-    const downloadBtn = document.getElementById('downloadBtn');
-    const apkSubText = document.getElementById('apkSubText');
-    const onlineStats = document.getElementById('onlineStats');
-    const starContainer = document.getElementById('starContainer');
-    const ratingLabel = document.getElementById('ratingLabel');
-    const categoryChips = document.getElementById('categoryChips');
-    const feedbackForm = document.getElementById('feedbackForm');
-    const testerNameInput = document.getElementById('testerName');
-    const deviceModelInput = document.getElementById('deviceModel');
-    const testerCommentsInput = document.getElementById('testerComments');
-    const feedbackFormContainer = document.getElementById('feedbackFormContainer');
-    const feedbackSuccess = document.getElementById('feedbackSuccess');
-    const submitAnotherBtn = document.getElementById('submitAnotherBtn');
     const toast = document.getElementById('toast');
-    const toastMsg = document.getElementById('toastMsg');
-
+    const toastText = document.getElementById('toastText');
     function showToast(msg) {
-      toastMsg.innerText = msg;
+      toastText.innerText = msg;
       toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 4000);
+      setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
-    // Auto-fill detected device
-    deviceModelInput.value = detectDevice();
-
-    // 1. Track Page Visit
+    // 1. Track Visit
     fetch('/api/download/track-visit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ referrer: document.referrer })
     }).catch(() => {});
 
-    // 2. Fetch Live Config & Online Stats
+    // 2. Fetch Config
     fetch('/api/download/config')
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
         if (data.config) {
           if (data.config.r2_download_url && data.config.r2_download_url.trim()) {
             downloadUrl = data.config.r2_download_url.trim();
           }
-          if (data.config.apk_version && data.config.apk_size_mb) {
-            apkSubText.innerText = `${data.config.apk_version} • ${data.config.apk_size_mb} • Direct & Fast`;
+          if (data.config.apk_size_mb) {
+            document.getElementById('apkBadge').innerText = `Android • ${data.config.apk_size_mb}`;
           }
         }
         if (data.stats && data.stats.online_players !== undefined) {
-          onlineStats.innerText = `${data.stats.online_players} Players`;
+          document.getElementById('playerCounter').innerText = `${data.stats.online_players} Online`;
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
 
-    // 3. Handle Download Click
+    // 3. Download Button Tap
+    const downloadBtn = document.getElementById('downloadBtn');
     downloadBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      // Track click
+      playTapSound();
+
+      // Track Click
       fetch('/api/download/track-click', { method: 'POST' }).catch(() => {});
-      
-      showToast('Downloading APK... Follow the 3-step guide below!');
-      
-      // Navigate to download URL after short delay for tracking
+      showToast('Starting APK Download...');
+
       setTimeout(() => {
         window.location.href = downloadUrl;
-      }, 250);
+      }, 200);
     });
 
-    // 4. Handle Star Rating Clicks
-    starContainer.addEventListener('click', (e) => {
+    // 4. Feedback Modal
+    const feedbackOverlay = document.getElementById('feedbackOverlay');
+    const openFeedbackBtn = document.getElementById('openFeedbackBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const starRow = document.getElementById('starRow');
+    const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
+    const testerNameInput = document.getElementById('testerNameInput');
+    const testerCommentsInput = document.getElementById('testerCommentsInput');
+
+    openFeedbackBtn.addEventListener('click', () => {
+      playTapSound();
+      feedbackOverlay.classList.add('active');
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      feedbackOverlay.classList.remove('active');
+    });
+
+    feedbackOverlay.addEventListener('click', (e) => {
+      if (e.target === feedbackOverlay) feedbackOverlay.classList.remove('active');
+    });
+
+    starRow.addEventListener('click', (e) => {
       if (e.target.classList.contains('star-btn')) {
-        currentRating = parseInt(e.target.dataset.rating, 10);
-        updateStars();
+        playTapSound();
+        currentRating = parseInt(e.target.dataset.val, 10);
+        starRow.querySelectorAll('.star-btn').forEach(b => {
+          b.classList.toggle('active', parseInt(b.dataset.val, 10) <= currentRating);
+        });
       }
     });
 
-    function updateStars() {
-      const buttons = starContainer.querySelectorAll('.star-btn');
-      buttons.forEach(btn => {
-        const r = parseInt(btn.dataset.rating, 10);
-        btn.classList.toggle('active', r <= currentRating);
-      });
-      ratingLabel.innerText = ratingDescriptions[currentRating] || `${currentRating} Stars`;
-    }
-
-    // 5. Handle Category Chips
-    categoryChips.addEventListener('click', (e) => {
-      if (e.target.classList.contains('chip-btn')) {
-        categoryChips.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('active'));
-        e.target.classList.add('active');
-        currentCategory = e.target.dataset.cat;
+    sendFeedbackBtn.addEventListener('click', async () => {
+      const comments = testerCommentsInput.value.trim();
+      if (!comments) {
+        showToast('Please enter your feedback!');
+        return;
       }
-    });
-
-    // 6. Handle Feedback Form Submit
-    feedbackForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerText = 'Submitting Feedback...';
-
-      const payload = {
-        name: testerNameInput.value.trim(),
-        device_model: deviceModelInput.value.trim(),
-        category: currentCategory,
-        rating: currentRating,
-        comments: testerCommentsInput.value.trim()
-      };
+      playTapSound();
+      sendFeedbackBtn.disabled = true;
+      sendFeedbackBtn.innerText = 'Sending...';
 
       try {
-        const res = await fetch('/api/download/feedback', {
+        await fetch('/api/download/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            name: testerNameInput.value.trim() || 'Player',
+            rating: currentRating,
+            comments: comments
+          })
         });
-        const data = await res.json();
-        if (data.success) {
-          feedbackFormContainer.style.display = 'none';
-          feedbackSuccess.style.display = 'block';
-          showToast('Thank you! Your feedback has been sent to dev team.');
-        } else {
-          alert(data.message || 'Error submitting feedback. Please try again.');
-        }
-      } catch (err) {
-        alert('Network error. Please check your connection.');
+        feedbackOverlay.classList.remove('active');
+        testerCommentsInput.value = '';
+        showToast('Nandi! Feedback received ❤️');
+      } catch (e) {
+        showToast('Error sending feedback');
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = 'Send Feedback to Dev Team 🚀';
+        sendFeedbackBtn.disabled = false;
+        sendFeedbackBtn.innerText = 'Send ⭐';
       }
-    });
-
-    submitAnotherBtn.addEventListener('click', () => {
-      testerCommentsInput.value = '';
-      feedbackSuccess.style.display = 'none';
-      feedbackFormContainer.style.display = 'block';
     });
   </script>
 </body>

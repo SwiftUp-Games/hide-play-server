@@ -7,7 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const MAX_PLAYERS_PER_ROOM = 6;
-const MATCHMAKING_WAIT_SECONDS = 30;
+const MATCHMAKING_WAIT_SECONDS = 20;
 const COUNTDOWN_SECONDS = 3;
 
 interface Player {
@@ -32,6 +32,7 @@ interface RoomSettings {
 
 interface Room {
   code: string;
+  mode: 'quick_match' | 'custom';
   hostPeerId: number;
   isPublic: boolean;
   players: Map<number, Player>;
@@ -65,10 +66,10 @@ function getOnlineStats() {
   for (const r of rooms.values()) {
     realPlayers += r.players.size;
   }
-  const simulatedPool = 1420 + (rooms.size * 5) + realPlayers;
+  const connectedSockets = wss ? wss.clients.size : realPlayers;
   return {
-    online_players: simulatedPool,
-    active_rooms: Math.max(rooms.size, 14),
+    online_players: Math.max(connectedSockets, realPlayers),
+    active_rooms: rooms.size,
     real_players: realPlayers,
     region: 'Asia-South (Mumbai)'
   };
@@ -127,7 +128,7 @@ const server = http.createServer((req, res) => {
 function getPublicRoomsSummary() {
   const list = [];
   for (const r of rooms.values()) {
-    if (r.isPublic && r.status === 'lobby') {
+    if (r.mode === 'custom' && r.isPublic && r.status === 'lobby') {
       const host = r.players.get(r.hostPeerId);
       list.push({
         code: r.code,
@@ -227,21 +228,21 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       safeSend(ws, { type: 'ROOM_LIST', rooms: getPublicRoomsSummary() });
       break;
 
-    // 1. QUICK MATCH (Random matchmaking into open public room)
+    // 1. QUICK MATCH (Random matchmaking into open quick_match room)
     case 'QUICK_MATCH': {
       leaveCurrentRoom(ws);
 
-      // Search for open public room with space
+      // Search ONLY for open quick_match rooms with space (never custom rooms)
       let targetRoom: Room | undefined;
       for (const r of rooms.values()) {
-        if (r.isPublic && r.status === 'lobby' && r.players.size < r.maxPlayers) {
+        if (r.mode === 'quick_match' && r.status === 'lobby' && r.players.size < r.maxPlayers) {
           targetRoom = r;
           break;
         }
       }
 
       if (targetRoom) {
-        // Join existing room
+        // Join existing matchmaking room
         joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress);
         if (!targetRoom.matchmakingTimer) {
           startMatchmakingTimer(targetRoom);
@@ -254,9 +255,10 @@ function handleClientMessage(ws: WebSocket, msg: any) {
           });
         }
       } else {
-        // Create new public room and start 30s bot timer
+        // Create new quick_match room and start 20s matchmaking timer
         const newRoom = createRoomInternal(ws, {
-          isPublic: true,
+          mode: 'quick_match',
+          isPublic: false,
           player_name: msg.player_name || 'Player',
           avatar: msg.avatar,
           hat: msg.hat,
@@ -268,11 +270,12 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       break;
     }
 
-    // 2. CREATE ROOM (Custom room creation)
+    // 2. CREATE ROOM (Custom room creation by code)
     case 'CREATE_ROOM': {
       leaveCurrentRoom(ws);
-      const isPublic = msg.is_public !== false; // default true
+      const isPublic = msg.is_public === true;
       const newRoom = createRoomInternal(ws, {
+        mode: 'custom',
         isPublic,
         player_name: msg.player_name || 'Host',
         avatar: msg.avatar,
@@ -280,6 +283,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         dress: msg.dress,
         settings: msg.settings
       });
+      // Custom rooms stay in lobby waiting for friends with NO auto-fill timer
       break;
     }
 
@@ -357,6 +361,18 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       if (currentRoom && currentPeerId === currentRoom.hostPeerId && currentRoom.status === 'lobby') {
         stopRoomTimers(currentRoom);
         currentRoom.status = 'countdown';
+
+        // Custom room bot check: only add bots if host explicitly configured them in settings
+        const customBots = Math.max(0, currentRoom.settings.bot_count || 0);
+        if (customBots > 0) {
+          console.log(`[Custom Room] Room ${currentRoom.code} host configured ${customBots} bots.`);
+          broadcastToRoom(currentRoom, {
+            type: 'MATCHMAKING_AUTO_FILL',
+            bots_needed: customBots,
+            total_players: currentRoom.players.size + customBots
+          });
+        }
+
         triggerAutoStartCountdown(currentRoom);
       }
       break;
@@ -450,6 +466,7 @@ function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
 function createRoomInternal(
   ws: WebSocket,
   opts: {
+    mode?: 'quick_match' | 'custom';
     isPublic: boolean;
     player_name: string;
     avatar?: string;
@@ -460,6 +477,7 @@ function createRoomInternal(
 ): Room {
   const code = generateRoomCode();
   const hostPeerId = 1;
+  const mode = opts.mode || 'custom';
 
   const defaultSettings: RoomSettings = {
     counting_time: 15,
@@ -484,6 +502,7 @@ function createRoomInternal(
 
   const room: Room = {
     code,
+    mode,
     hostPeerId,
     isPublic: opts.isPublic,
     players: new Map([[hostPeerId, hostPlayer]]),
@@ -558,7 +577,7 @@ function joinRoomInternal(
 }
 
 // ----------------------------------------------------------------------------
-// Matchmaking 30-Second Bot Fallback Timer
+// Matchmaking 20-Second Bot Fallback Timer
 // ----------------------------------------------------------------------------
 function startMatchmakingTimer(room: Room) {
   stopRoomTimers(room);
@@ -578,16 +597,20 @@ function startMatchmakingTimer(room: Room) {
       clearInterval(room.matchmakingTimer!);
       room.matchmakingTimer = undefined;
 
-      // 30 Seconds Elapsed: Auto-fill remaining slots with bots!
-      const missingBots = Math.max(0, room.maxPlayers - room.players.size);
-      console.log(`[Matchmaking Timeout] Room ${room.code} reached 30s with ${room.players.size} players. Auto-filling ${missingBots} bots.`);
+      // 20 Seconds Elapsed in Quick Match:
+      // Even with 2 players, launch the game!
+      const humanCount = room.players.size;
+      const missingBots = Math.max(0, room.maxPlayers - humanCount);
+      console.log(`[Matchmaking 20s Elapsed] Room ${room.code} starting with ${humanCount} human players. Auto-filling ${missingBots} bots.`);
 
       room.status = 'countdown';
-      broadcastToRoom(room, {
-        type: 'MATCHMAKING_AUTO_FILL',
-        bots_needed: missingBots,
-        total_players: room.maxPlayers
-      });
+      if (missingBots > 0) {
+        broadcastToRoom(room, {
+          type: 'MATCHMAKING_AUTO_FILL',
+          bots_needed: missingBots,
+          total_players: room.maxPlayers
+        });
+      }
 
       triggerAutoStartCountdown(room);
     }
@@ -613,10 +636,17 @@ function triggerAutoStartCountdown(room: Room) {
       room.countdownTimer = undefined;
       room.status = 'in_game';
 
+      // Pick authoritative Finder from connected peers
+      const pids = Array.from(room.players.keys());
+      const chosenFinderId = pids[Math.floor(Math.random() * pids.length)];
+
       broadcastToRoom(room, {
-        type: 'LAUNCH_GAME'
+        type: 'LAUNCH_GAME',
+        finder_id: chosenFinderId,
+        candidates: pids,
+        map: room.settings.selected_map
       });
-      console.log(`[Game Launched] Room ${room.code} is now in_game!`);
+      console.log(`[Game Launched] Room ${room.code} is now in_game! Finder: Peer ${chosenFinderId}`);
     }
   }, 1000);
 }

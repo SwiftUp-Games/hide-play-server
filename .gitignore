@@ -6,7 +6,7 @@ yarn-error.log*
 package-lock.json.bak
 
 # TypeScript compiler output
-dist/
+/dist/
 *.tsbuildinfo
 
 # Environment variables

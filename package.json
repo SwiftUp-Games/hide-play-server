@@ -4,26 +4,35 @@
   "description": "High performance matchmaking, room relay and WebRTC signaling server for Hide & Play",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build:admin": "cd admin && npm install --include=dev && npm run build",
+    "build": "npm run build:admin && tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "dev:admin": "cd admin && npm run dev",
     "stop": "./stop.sh",
     "status": "./status.sh",
     "typecheck": "tsc --noEmit",
     "test": "tsc --noEmit",
     "deploy:render": "./scripts/deploy-render.sh"
   },
-  "keywords": ["hide-and-seek", "multiplayer", "webrtc", "godot"],
+  "keywords": [
+    "hide-and-seek",
+    "multiplayer",
+    "webrtc",
+    "godot"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@types/node": "^22.13.0",
     "@types/ws": "^8.5.14",
     "dotenv": "^16.4.7",
+    "express": "^5.3.0",
     "typescript": "^5.7.3",
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2"
   }

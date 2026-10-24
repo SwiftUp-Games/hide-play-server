@@ -1,5 +1,9 @@
 import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import express, { Request, Response, NextFunction } from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
+import { gameStore } from './store';
 
 // ============================================================================
 // HIDE & PLAY — HIGH PERFORMANCE MATCHMAKING, RELAY & WEBRTC SIGNALING SERVER
@@ -78,52 +82,212 @@ function getOnlineStats() {
 // ----------------------------------------------------------------------------
 // HTTP Server (Health Check & Room Discovery API)
 // ----------------------------------------------------------------------------
-const server = http.createServer((req, res) => {
-  // Global CORS
+const app = express();
+app.use(express.json());
+
+// Global CORS
+app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
+    return res.sendStatus(204);
   }
-
-  const url = new URL(req.url || '/', `http://${req.headers.host}`);
-
-  if (url.pathname === '/' && req.headers.accept && req.headers.accept.includes('text/html')) {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(getDashboardHtml());
-    return;
-  }
-
-  if (url.pathname === '/health' || url.pathname === '/') {
-    const stats = getOnlineStats();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      service: 'hide-play-online-relay',
-      uptime_seconds: Math.floor(process.uptime()),
-      active_rooms: stats.active_rooms,
-      active_players: stats.real_players,
-      online_players: stats.online_players,
-      region: stats.region,
-      timestamp: Date.now()
-    }));
-    return;
-  }
-
-  if (url.pathname === '/rooms') {
-    const publicRooms = getPublicRoomsSummary();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ rooms: publicRooms }));
-    return;
-  }
-
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('Not Found');
+  next();
 });
+
+// Admin Auth Middleware
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token as string);
+  if (!gameStore.validateSession(token)) {
+    return res.status(401).json({ success: false, message: 'Unauthorized. Please login with 10-digit mobile code.' });
+  }
+  next();
+}
+
+// ----------------------------------------------------------------------------
+// Admin Auth Routes
+// ----------------------------------------------------------------------------
+app.post('/api/admin/login', (req, res) => {
+  const { mobile } = req.body;
+  if (!mobile || !gameStore.verifyMobile(mobile)) {
+    return res.status(401).json({ success: false, message: 'Invalid 10-digit mobile authentication number.' });
+  }
+  const token = gameStore.createSession();
+  return res.json({ success: true, token, message: 'Authentication successful.' });
+});
+
+app.get('/api/admin/me', requireAdmin, (_req, res) => {
+  return res.json({ valid: true });
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token as string);
+  if (token) gameStore.invalidateSession(token);
+  return res.json({ success: true });
+});
+
+app.post('/api/admin/change-mobile', requireAdmin, (req, res) => {
+  const { mobile } = req.body;
+  const result = gameStore.updateAdminMobile(mobile);
+  if (!result.success) return res.status(400).json(result);
+  return res.json(result);
+});
+
+// ----------------------------------------------------------------------------
+// Admin Dashboard & Live Stats Routes
+// ----------------------------------------------------------------------------
+app.get('/api/admin/stats', requireAdmin, (_req, res) => {
+  const stats = getOnlineStats();
+  const roomsList = Array.from(rooms.values()).map(r => ({
+    code: r.code,
+    mode: r.mode,
+    host_name: r.players.get(r.hostPeerId)?.name || 'Host',
+    host_avatar: r.players.get(r.hostPeerId)?.avatar || 'boy_default',
+    map: r.settings.selected_map,
+    players_count: r.players.size,
+    max_players: r.maxPlayers,
+    status: r.status,
+    players: Array.from(r.players.values()).map(p => ({ id: p.peerId, name: p.name, avatar: p.avatar }))
+  }));
+
+  const data = gameStore.getDashboardOverview(stats.active_rooms, stats.online_players, roomsList);
+  return res.json(data);
+});
+
+// ----------------------------------------------------------------------------
+// Admin Player Management Routes
+// ----------------------------------------------------------------------------
+app.get('/api/admin/players', requireAdmin, (_req, res) => {
+  const players = gameStore.getAllPlayers();
+  return res.json({ players });
+});
+
+app.post('/api/admin/players/:id/coins', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const { amount, mode } = req.body;
+  const result = gameStore.adjustCoins(id, Number(amount) || 0, mode === 'set' ? 'set' : 'add');
+  if (!result.success) return res.status(404).json(result);
+  return res.json(result);
+});
+
+app.post('/api/admin/players/:id/unlock', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const { item_type, item_id } = req.body;
+  const result = gameStore.unlockItem(id, item_type, item_id);
+  if (!result.success) return res.status(404).json(result);
+  return res.json(result);
+});
+
+app.delete('/api/admin/players/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const success = gameStore.deletePlayer(id);
+  return res.json({ success });
+});
+
+// ----------------------------------------------------------------------------
+// Admin Pricing Management Routes
+// ----------------------------------------------------------------------------
+app.get('/api/admin/pricing', requireAdmin, (_req, res) => {
+  return res.json(gameStore.getPricing());
+});
+
+app.post('/api/admin/pricing', requireAdmin, (req, res) => {
+  const updated = gameStore.updatePricing(req.body);
+  return res.json({ success: true, pricing: updated });
+});
+
+// ----------------------------------------------------------------------------
+// Admin Monetization & Ads Routes
+// ----------------------------------------------------------------------------
+app.get('/api/admin/monetization', requireAdmin, (_req, res) => {
+  return res.json(gameStore.getMonetization());
+});
+
+app.post('/api/admin/monetization', requireAdmin, (req, res) => {
+  const updated = gameStore.updateMonetization(req.body);
+  return res.json({ success: true, monetization: updated });
+});
+
+// ----------------------------------------------------------------------------
+// Admin Room Control Routes
+// ----------------------------------------------------------------------------
+app.post('/api/admin/rooms/:code/close', requireAdmin, (req, res) => {
+  const code = String(req.params.code);
+  const room = rooms.get(code);
+  if (room) {
+    stopRoomTimers(room);
+    broadcastToRoom(room, { type: 'ERROR', code: 'ROOM_CLOSED', message: 'Room closed by Game Admin.' });
+    for (const [_, p] of room.players) {
+      clientToRoom.delete(p.ws);
+    }
+    rooms.delete(code);
+    return res.json({ success: true, message: `Room ${code} closed.` });
+  }
+  return res.status(404).json({ success: false, message: 'Room not found.' });
+});
+
+// ----------------------------------------------------------------------------
+// Public Game Client Endpoints (Used by Mobile Game Godot Client)
+// ----------------------------------------------------------------------------
+app.get('/api/game/config', (_req, res) => {
+  return res.json(gameStore.getPublicClientConfig());
+});
+
+app.post('/api/game/player-sync', (req, res) => {
+  const player = gameStore.registerOrSyncPlayer(req.body);
+  return res.json({
+    success: true,
+    player,
+    config: gameStore.getPublicClientConfig()
+  });
+});
+
+app.get('/health', (_req, res) => {
+  const stats = getOnlineStats();
+  return res.json({
+    status: 'ok',
+    service: 'hide-play-online-relay',
+    uptime_seconds: Math.floor(process.uptime()),
+    active_rooms: stats.active_rooms,
+    active_players: stats.real_players,
+    online_players: stats.online_players,
+    region: stats.region,
+    timestamp: Date.now()
+  });
+});
+
+app.get('/rooms', (_req, res) => {
+  return res.json({ rooms: getPublicRoomsSummary() });
+});
+
+// ----------------------------------------------------------------------------
+// Serve Built React Admin App
+// ----------------------------------------------------------------------------
+const adminDistPath = path.resolve(__dirname, '../admin/dist');
+if (fs.existsSync(adminDistPath)) {
+  app.use(express.static(adminDistPath));
+  app.get(['/admin', '/admin/*'], (_req, res) => {
+    res.sendFile(path.join(adminDistPath, 'index.html'));
+  });
+  app.get('/', (req, res, next) => {
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.sendFile(path.join(adminDistPath, 'index.html'));
+    }
+    next();
+  });
+} else {
+  app.get(['/admin', '/'], (req, res) => {
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.send(getDashboardHtml());
+    }
+    res.json(getOnlineStats());
+  });
+}
+
+const server = http.createServer(app);
 
 function getPublicRoomsSummary() {
   const list = [];

@@ -268,8 +268,9 @@ app.get('/rooms', (_req, res) => {
 // ----------------------------------------------------------------------------
 const adminDistPath = path.resolve(__dirname, '../admin/dist');
 if (fs.existsSync(adminDistPath)) {
+  app.use('/admin', express.static(adminDistPath));
   app.use(express.static(adminDistPath));
-  app.get(['/admin', '/admin/*'], (_req, res) => {
+  app.get(/^\/admin(?:\/.*)?$/, (_req, res) => {
     res.sendFile(path.join(adminDistPath, 'index.html'));
   });
   app.get('/', (req, res, next) => {
@@ -279,7 +280,10 @@ if (fs.existsSync(adminDistPath)) {
     next();
   });
 } else {
-  app.get(['/admin', '/'], (req, res) => {
+  app.get(/^\/admin(?:\/.*)?$/, (_req, res) => {
+    res.send(getDashboardHtml());
+  });
+  app.get('/', (req, res) => {
     if (req.headers.accept && req.headers.accept.includes('text/html')) {
       return res.send(getDashboardHtml());
     }

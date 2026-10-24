@@ -53,14 +53,12 @@ interface Room {
 const rooms = new Map<string, Room>();
 const clientToRoom = new Map<WebSocket, { roomCode: string; peerId: number }>();
 
-// Unique 4-character room code generator (Kerala-themed prefixes)
-const PREFIXES = ['KL', 'WY', 'AL', 'EK', 'TV', 'CL', 'MN', 'KT', 'PK', 'ID'];
+// Strictly 4-digit room code generator (OTP format: 1000 - 9999)
 function generateRoomCode(): string {
   let code = '';
   do {
-    const prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-    const num = Math.floor(1000 + Math.random() * 9000); // 4 digit number
-    code = `${prefix}-${num}`;
+    // Strictly 4-digit number (1000 to 9999)
+    code = Math.floor(1000 + Math.random() * 9000).toString();
   } while (rooms.has(code));
   return code;
 }
@@ -455,18 +453,17 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       break;
     }
 
-    // 3. JOIN ROOM (By 4-letter Code)
+    // 3. JOIN ROOM (By Strictly 4-digit OTP Code)
     case 'JOIN_ROOM': {
       leaveCurrentRoom(ws);
-      let code = (msg.code || '').trim().toUpperCase();
+      const rawCode = (msg.code || '').toString().trim();
+      let code = rawCode.replace(/[^0-9]/g, '').slice(0, 4);
       let targetRoom = rooms.get(code);
 
-      // Support flexible matching: e.g. "7491" matches "KL-7491", "KL7491" matches "KL-7491"
-      if (!targetRoom) {
-        const cleanInput = code.replace(/[^A-Z0-9]/g, '');
+      // Fallback matching if legacy room code format existed
+      if (!targetRoom && code.length === 4) {
         for (const [rCode, r] of rooms) {
-          const cleanRoomCode = rCode.replace(/[^A-Z0-9]/g, '');
-          if (rCode.endsWith(`-${code}`) || cleanRoomCode === cleanInput || rCode.toLowerCase() === code.toLowerCase()) {
+          if (rCode === code || rCode.replace(/[^0-9]/g, '') === code) {
             targetRoom = r;
             code = rCode;
             break;
@@ -474,8 +471,8 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         }
       }
 
-      if (!targetRoom) {
-        safeSend(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: `Room ${code} was not found.` });
+      if (!targetRoom || code.length !== 4) {
+        safeSend(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: `Room ${code || rawCode} was not found.` });
         return;
       }
       if (targetRoom.status !== 'lobby') {

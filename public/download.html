@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hide & Play (ഒളിച്ചു കളി) - Download</title>
+  <title>Hide & Play - Download & Play</title>
   
   <!-- Open Graph -->
-  <meta property="og:title" content="Hide & Play (ഒളിച്ചു കളി) - Android Download">
-  <meta property="og:description" content="Play the authentic 3D Kerala Village Hide & Seek game with proximity voice chat!">
+  <meta property="og:title" content="Hide & Play - Multiplayer 3D Hide & Seek">
+  <meta property="og:description" content="Remember your childhood. Play with friends. Download the Android beta now!">
   <meta property="og:image" content="/assets/icon.png">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#071b10">
@@ -15,7 +15,7 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/assets/icon.png">
 
-  <!-- Google Game Font -->
+  <!-- Google Game Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
@@ -32,123 +32,86 @@
     html, body {
       width: 100%;
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
       background-color: #06180e;
       font-family: 'Fredoka', 'Outfit', sans-serif;
       color: #fff;
     }
 
-    /* Immersive Game Backdrop */
+    /* Ambient Game Scene */
     .viewport-scene {
       position: relative;
       width: 100%;
       height: 100%;
-      height: 100dvh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
       padding: 20px 20px 28px;
-      overflow: hidden;
       background: 
-        radial-gradient(circle at 50% 30%, rgba(39, 174, 96, 0.28) 0%, transparent 65%),
-        radial-gradient(circle at 15% 75%, rgba(245, 158, 11, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 50% 25%, rgba(39, 174, 96, 0.28) 0%, transparent 65%),
+        radial-gradient(circle at 15% 75%, rgba(245, 158, 11, 0.16) 0%, transparent 50%),
         radial-gradient(circle at 85% 75%, rgba(16, 185, 129, 0.18) 0%, transparent 50%),
         linear-gradient(180deg, #071c11 0%, #04100a 100%);
     }
 
-    /* Background Ambient Rays & Fireflies */
-    .ambient-particles {
+    .ambient-stars {
       position: absolute;
       inset: 0;
       pointer-events: none;
       background-image: 
         radial-gradient(2px 2px at 20px 30px, #ffd166, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 40px 70px, #a7f3d0, rgba(0,0,0,0)),
-        radial-gradient(3px 3px at 50px 160px, #fde047, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 50px 160px, #fde047, rgba(0,0,0,0)),
         radial-gradient(2px 2px at 90px 40px, #34d399, rgba(0,0,0,0)),
-        radial-gradient(3px 3px at 130px 80px, #f59e0b, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 160px 120px, #ecfdf5, rgba(0,0,0,0));
+        radial-gradient(3px 3px at 140px 90px, #f59e0b, rgba(0,0,0,0));
       background-repeat: repeat;
-      background-size: 200px 200px;
+      background-size: 220px 220px;
       opacity: 0.55;
       animation: floatStars 24s linear infinite;
     }
 
     @keyframes floatStars {
       from { transform: translateY(0); }
-      to { transform: translateY(-200px); }
+      to { transform: translateY(-220px); }
     }
 
-    /* Top Gamified Pill Bar */
-    .top-bar {
+    /* Top Bar - Minimal */
+    .top-header {
       width: 100%;
-      max-width: 520px;
+      max-width: 440px;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
       z-index: 10;
     }
 
-    .badge-pill {
-      background: rgba(14, 43, 27, 0.85);
-      border: 2px solid rgba(255, 183, 3, 0.4);
+    .btn-top-feedback {
+      background: rgba(14, 43, 27, 0.75);
+      border: 1px solid rgba(255, 183, 3, 0.35);
+      color: #ffd166;
       padding: 6px 14px;
       border-radius: 999px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(8px);
-    }
-
-    .live-dot {
-      width: 8px;
-      height: 8px;
-      background: #2ecc71;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #2ecc71;
-      animation: pulse 1.6s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.35; transform: scale(1.3); }
-    }
-
-    .badge-text {
+      gap: 6px;
       font-size: 13px;
       font-weight: 700;
-      color: #ffd166;
-      letter-spacing: 0.5px;
-    }
-
-    .btn-feedback-icon {
-      background: rgba(14, 43, 27, 0.85);
-      border: 2px solid rgba(84, 180, 114, 0.4);
-      color: #ffd166;
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.2);
-      transition: transform 0.12s ease, border-color 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      transition: transform 0.12s ease;
     }
 
-    .btn-feedback-icon:active {
-      transform: scale(0.92);
-      border-color: #ffd166;
+    .btn-top-feedback:active {
+      transform: scale(0.94);
     }
 
-    /* Center Artwork Masterpiece Showcase */
-    .center-stage {
+    /* Center Hero Artwork & Simple Details */
+    .hero-center {
       position: relative;
       width: 100%;
-      max-width: 480px;
+      max-width: 440px;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -157,14 +120,13 @@
       z-index: 5;
     }
 
-    /* Ambient Spotlight behind Logo */
     .stage-glow {
       position: absolute;
-      width: 260px;
-      height: 260px;
+      width: 280px;
+      height: 280px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 183, 3, 0.25) 0%, rgba(39, 174, 96, 0.15) 50%, transparent 75%);
-      filter: blur(28px);
+      background: radial-gradient(circle, rgba(255, 183, 3, 0.22) 0%, rgba(39, 174, 96, 0.15) 50%, transparent 75%);
+      filter: blur(36px);
       pointer-events: none;
       animation: pulseGlow 4s ease-in-out infinite alternate;
     }
@@ -174,61 +136,59 @@
       to { transform: scale(1.15); opacity: 1; }
     }
 
-    /* Main Floating 3D Logo Artwork */
-    .logo-hero {
+    /* Game Logo Artwork */
+    .logo-box {
       position: relative;
-      width: 90%;
-      max-width: 360px;
-      filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.65));
-      animation: heroFloat 4.2s ease-in-out infinite;
-      cursor: pointer;
+      width: 88%;
+      max-width: 330px;
+      filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.7));
+      animation: logoFloat 4s ease-in-out infinite;
+      z-index: 3;
+      margin-bottom: 20px;
     }
 
-    @keyframes heroFloat {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(-10px) rotate(0.8deg); }
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
     }
 
-    .logo-hero img {
+    .logo-box img {
       width: 100%;
       height: auto;
       display: block;
       object-fit: contain;
     }
 
-    /* Floating Village Characters */
-    .character-left {
-      position: absolute;
-      left: 2%;
-      bottom: 6%;
-      width: 82px;
-      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
-      animation: charBobLeft 3.6s ease-in-out infinite;
-      z-index: 4;
+    /* Simple, Straightforward Text */
+    .simple-details {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      z-index: 3;
     }
 
-    @keyframes charBobLeft {
-      0%, 100% { transform: translateY(0) rotate(-3deg); }
-      50% { transform: translateY(-8px) rotate(-1deg); }
+    .simple-item {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.4px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
     }
 
-    .character-right {
-      position: absolute;
-      right: 2%;
-      bottom: 6%;
-      width: 82px;
-      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
-      animation: charBobRight 3.9s ease-in-out infinite;
-      z-index: 4;
+    .simple-item .bullet-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ffd166;
+      box-shadow: 0 0 8px #ffd166;
     }
 
-    @keyframes charBobRight {
-      0%, 100% { transform: translateY(0) rotate(3deg); }
-      50% { transform: translateY(-8px) rotate(1deg); }
-    }
-
-    /* Bottom Action Area with Chunky 3D Button */
-    .bottom-action-panel {
+    /* Below Center Action Area */
+    .action-panel {
       width: 100%;
       max-width: 440px;
       display: flex;
@@ -236,23 +196,23 @@
       align-items: center;
       gap: 12px;
       z-index: 10;
+      margin-bottom: 10px;
     }
 
-    /* Massive Tactile 3D Gamified Download Button */
+    /* Massive Tactile 3D Download Button */
     .btn-3d-download {
       position: relative;
       width: 100%;
       background: linear-gradient(180deg, #2fe075 0%, #159c4e 100%);
       border: 3px solid #6ee7b7;
-      border-radius: 26px;
-      padding: 20px 24px;
+      border-radius: 24px;
+      padding: 18px 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 14px;
       cursor: pointer;
       text-decoration: none;
-      /* Authentic Chunky 3D Cube Shadow */
       box-shadow: 
         0 10px 0 #0d5f2f,
         0 16px 28px rgba(0, 0, 0, 0.65),
@@ -277,15 +237,15 @@
         inset 0 1px 2px rgba(255, 255, 255, 0.3);
     }
 
-    .btn-icon-wrapper {
-      width: 46px;
-      height: 46px;
+    .btn-icon-box {
+      width: 42px;
+      height: 42px;
       background: rgba(255, 255, 255, 0.22);
-      border-radius: 16px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
+      font-size: 22px;
       box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
       animation: pulseIcon 2s ease-in-out infinite;
     }
@@ -295,56 +255,67 @@
       50% { transform: scale(1.12); }
     }
 
-    .btn-text-content {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      line-height: 1.1;
-    }
-
     .btn-main-title {
-      font-size: 24px;
+      font-size: 23px;
       font-weight: 800;
       color: #042914;
       text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
     }
 
-    .btn-corner-badge {
+    .btn-badge-corner {
       position: absolute;
-      top: -12px;
+      top: -11px;
       right: 18px;
       background: linear-gradient(135deg, #ffd166, #f59e0b);
       color: #451a03;
       font-size: 11px;
       font-weight: 800;
-      padding: 4px 12px;
+      padding: 3px 12px;
       border-radius: 999px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.35), 0 2px 0 #b45309;
       border: 1px solid #fef3c7;
       letter-spacing: 0.4px;
     }
 
-    /* Minimalist Sub-Status */
-    .status-sub-pill {
+    /* Simple Under-Button Details */
+    .under-guide {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #94a3b8;
+      padding: 0 6px;
+    }
+
+    .simple-cue {
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .btn-feedback-link {
+      background: none;
+      border: none;
+      color: #ffd166;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
-      color: #94a3b8;
-      font-weight: 600;
-      letter-spacing: 0.4px;
+      gap: 4px;
     }
 
-    .status-sub-pill span {
-      color: #cbd5e1;
+    .btn-feedback-link:hover {
+      text-decoration: underline;
     }
 
-    /* Gamified Feedback Popup Modal (Clean & Non-Intrusive) */
-    .feedback-modal-overlay {
+    /* Minimal Feedback Modal */
+    .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(10px);
       z-index: 100;
       display: none;
@@ -353,7 +324,7 @@
       padding: 20px;
     }
 
-    .feedback-modal-overlay.active {
+    .modal-backdrop.active {
       display: flex;
       animation: modalFadeIn 0.2s ease forwards;
     }
@@ -363,7 +334,7 @@
       to { opacity: 1; transform: scale(1); }
     }
 
-    .feedback-box {
+    .modal-content {
       background: linear-gradient(165deg, #0e2d1d, #07190f);
       border: 2px solid rgba(255, 183, 3, 0.45);
       border-radius: 28px;
@@ -375,7 +346,7 @@
       position: relative;
     }
 
-    .btn-close-modal {
+    .btn-modal-close {
       position: absolute;
       top: 14px;
       right: 14px;
@@ -392,19 +363,19 @@
       justify-content: center;
     }
 
-    .feedback-box h3 {
+    .modal-content h3 {
       font-size: 20px;
       color: #ffd166;
       margin-bottom: 4px;
     }
 
-    .feedback-box p {
+    .modal-content p {
       font-size: 13px;
       color: #94a3b8;
       margin-bottom: 16px;
     }
 
-    .star-row {
+    .stars-selector {
       display: flex;
       justify-content: center;
       gap: 10px;
@@ -454,7 +425,6 @@
       border: none;
       border-radius: 16px;
       padding: 13px;
-      font-family: inherit;
       font-size: 16px;
       font-weight: 800;
       cursor: pointer;
@@ -495,64 +465,65 @@
 </head>
 <body>
   <div class="viewport-scene">
-    <div class="ambient-particles"></div>
+    <div class="ambient-stars"></div>
 
-    <!-- Top Gamified Bar -->
-    <div class="top-bar">
-      <div class="badge-pill">
-        <span class="live-dot"></span>
-        <span class="badge-text">ഒളിച്ചു കളി • BETA TEST</span>
-      </div>
-
-      <button id="openFeedbackBtn" class="btn-feedback-icon" title="Feedback">
-        ⭐
+    <!-- Top Bar -->
+    <header class="top-header">
+      <button id="openFeedbackBtn" class="btn-top-feedback" title="Feedback">
+        <span>⭐</span>
+        <span>Feedback</span>
       </button>
-    </div>
+    </header>
 
-    <!-- Center Stage (Visual Game Masterpiece) -->
-    <div class="center-stage">
+    <!-- Center Hero Artwork & Simple Details -->
+    <div class="hero-center">
       <div class="stage-glow"></div>
 
-      <!-- Character peeking left -->
-      <img src="/assets/avatars/traditional.png" class="character-left" alt="Kuttan">
-
-      <!-- Character peeking right -->
-      <img src="/assets/avatars/girl_default.png" class="character-right" alt="Malavika">
-
       <!-- Official Game Artwork Logo -->
-      <div class="logo-hero">
+      <div class="logo-box">
         <img src="/assets/game_title_logo_opt.png" alt="Hide & Play Game Logo" onerror="this.src='/assets/icon.png'">
+      </div>
+
+      <!-- Simple Details Text -->
+      <div class="simple-details">
+        <div class="simple-item">
+          <span class="bullet-dot"></span>
+          <span>Remember your childhood</span>
+        </div>
+        <div class="simple-item">
+          <span class="bullet-dot"></span>
+          <span>Play with friends</span>
+        </div>
       </div>
     </div>
 
-    <!-- Bottom Action (Tactile 3D Download Button) -->
-    <div class="bottom-action-panel">
+    <!-- Below-Center Action Area -->
+    <div class="action-panel">
+      <!-- 3D Download Button -->
       <a id="downloadBtn" href="/download/apk" class="btn-3d-download">
-        <span class="btn-corner-badge" id="apkBadge">Android • 70 MB</span>
-        <div class="btn-icon-wrapper">
-          📥
-        </div>
-        <div class="btn-text-content">
-          <span class="btn-main-title">DOWNLOAD APK</span>
-        </div>
+        <span class="btn-badge-corner" id="apkBadge">Android • 70 MB</span>
+        <div class="btn-icon-box">📥</div>
+        <span class="btn-main-title">DOWNLOAD APK</span>
       </a>
 
-      <div class="status-sub-pill">
-        <span>⚡ High-Speed Direct CDN</span>
-        <span>•</span>
-        <span id="playerCounter">Testing Live</span>
+      <!-- Simple Under-Button Details -->
+      <div class="under-guide">
+        <span class="simple-cue">1. Download &bull; 2. Install &bull; 3. Play</span>
+        <button id="openFeedbackBtn2" class="btn-feedback-link">
+          <span>⭐ Give Feedback</span>
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Minimal Feedback Modal -->
-  <div id="feedbackOverlay" class="feedback-modal-overlay">
-    <div class="feedback-box">
-      <button id="closeModalBtn" class="btn-close-modal">✕</button>
+  <div id="feedbackOverlay" class="modal-backdrop">
+    <div class="modal-content">
+      <button id="closeModalBtn" class="btn-modal-close">✕</button>
       <h3>Tester Feedback</h3>
       <p>How did the game feel?</p>
 
-      <div class="star-row" id="starRow">
+      <div class="stars-selector" id="starRow">
         <button type="button" class="star-btn active" data-val="1">★</button>
         <button type="button" class="star-btn active" data-val="2">★</button>
         <button type="button" class="star-btn active" data-val="3">★</button>
@@ -560,10 +531,10 @@
         <button type="button" class="star-btn active" data-val="5">★</button>
       </div>
 
-      <input type="text" id="testerNameInput" class="modal-input" placeholder="Your Name">
-      <textarea id="testerCommentsInput" class="modal-textarea" placeholder="Your thoughts or suggestions..."></textarea>
+      <input type="text" id="testerNameInput" class="modal-input" placeholder="Your Name or Nickname">
+      <textarea id="testerCommentsInput" class="modal-textarea" placeholder="Your feedback or suggestions..."></textarea>
 
-      <button id="sendFeedbackBtn" class="btn-modal-submit">Send ⭐</button>
+      <button id="sendFeedbackBtn" class="btn-modal-submit">Send Feedback ⭐</button>
     </div>
   </div>
 
@@ -573,7 +544,7 @@
     <span id="toastText">Download started!</span>
   </div>
 
-  <!-- Audio Element for tactile button click -->
+  <!-- Audio Element -->
   <audio id="clickAudio" src="/assets/click.wav" preload="auto"></audio>
 
   <script>
@@ -617,9 +588,6 @@
             document.getElementById('apkBadge').innerText = `Android • ${data.config.apk_size_mb}`;
           }
         }
-        if (data.stats && data.stats.online_players !== undefined) {
-          document.getElementById('playerCounter').innerText = `${data.stats.online_players} Online`;
-        }
       }).catch(() => {});
 
     // 3. Download Button Tap
@@ -640,16 +608,20 @@
     // 4. Feedback Modal
     const feedbackOverlay = document.getElementById('feedbackOverlay');
     const openFeedbackBtn = document.getElementById('openFeedbackBtn');
+    const openFeedbackBtn2 = document.getElementById('openFeedbackBtn2');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const starRow = document.getElementById('starRow');
     const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
     const testerNameInput = document.getElementById('testerNameInput');
     const testerCommentsInput = document.getElementById('testerCommentsInput');
 
-    openFeedbackBtn.addEventListener('click', () => {
+    function openModal() {
       playTapSound();
       feedbackOverlay.classList.add('active');
-    });
+    }
+
+    openFeedbackBtn.addEventListener('click', openModal);
+    if (openFeedbackBtn2) openFeedbackBtn2.addEventListener('click', openModal);
 
     closeModalBtn.addEventListener('click', () => {
       feedbackOverlay.classList.remove('active');
@@ -691,12 +663,12 @@
         });
         feedbackOverlay.classList.remove('active');
         testerCommentsInput.value = '';
-        showToast('Nandi! Feedback received ❤️');
+        showToast('Thank you! Feedback received ❤️');
       } catch (e) {
         showToast('Error sending feedback');
       } finally {
         sendFeedbackBtn.disabled = false;
-        sendFeedbackBtn.innerText = 'Send ⭐';
+        sendFeedbackBtn.innerText = 'Send Feedback ⭐';
       }
     });
   </script>

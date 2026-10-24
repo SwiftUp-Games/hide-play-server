@@ -71,7 +71,7 @@
     ]
   },
   "download_config": {
-    "r2_download_url": "",
+    "r2_download_url": "https://pub-demo.r2.dev/HideAndPlay.apk",
     "apk_version": "v1.2.0-beta",
     "apk_size_mb": "70 MB",
     "apk_release_notes": [
@@ -84,20 +84,37 @@
     "target_os": "Android 8.0+"
   },
   "tester_analytics": {
-    "page_views": 0,
-    "unique_visitors": 0,
-    "download_clicks": 0,
+    "page_views": 8,
+    "unique_visitors": 1,
+    "download_clicks": 3,
     "game_opens": 0,
     "visitor_devices": {
-      "Android": 0,
+      "Android": 1,
       "iOS": 0,
       "Windows": 0,
-      "Mac": 0,
+      "Mac": 7,
       "Other": 0
     },
-    "daily_stats": {}
+    "daily_stats": {
+      "2026-10-24": {
+        "views": 8,
+        "downloads": 3,
+        "game_opens": 0
+      }
+    }
   },
-  "tester_feedbacks": [],
+  "tester_feedbacks": [
+    {
+      "id": "fb_j7654bzmvmfhbsm",
+      "timestamp": 1792848121078,
+      "name": "Sanjay Menon",
+      "rating": 5,
+      "category": "gameplay",
+      "device_model": "Samsung Galaxy S24 Ultra",
+      "comments": "The proximity voice and village hiding spots are super fun! Very smooth performance.",
+      "status": "new"
+    }
+  ],
   "players": {},
   "stats": {
     "total_games_completed": 0,

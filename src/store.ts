@@ -163,7 +163,7 @@ const DEFAULT_DATA: GameAdminData = {
     apk_version: 'v1.2.0-beta',
     apk_size_mb: '70 MB',
     apk_release_notes: [
-      'Authentic Kerala village hide & seek gameplay (ഒളിച്ചു കളി)',
+      'Authentic 3D hide & seek village gameplay',
       'Instant 4-digit room code join & matchmaking',
       'Ultra-crisp 3D chunky action controls & spatial proximity voice bridge',
       '12+ customizable traditional avatars, dresses, & accessories'

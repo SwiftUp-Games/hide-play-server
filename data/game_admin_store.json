@@ -70,98 +70,13 @@
       "PIXEL-8-PRO"
     ]
   },
-  "players": {
-    "p_kuttan_01": {
-      "id": "p_kuttan_01",
-      "name": "Kuttan",
-      "mobile_number": "9876543210",
-      "avatar": "boy_default",
-      "hat": "hat_cap",
-      "dress": "dress_mundu",
-      "coins": 8405,
-      "matches_played": 14,
-      "matches_won": 9,
-      "high_score": 320,
-      "unlocked_avatars": [
-        "boy_default",
-        "girl_default",
-        "police",
-        "traditional"
-      ],
-      "unlocked_hats": [
-        "hat_none",
-        "hat_cap",
-        "hat_turban"
-      ],
-      "unlocked_dresses": [
-        "dress_mundu",
-        "dress_jersey"
-      ],
-      "created_at": 1792582994682,
-      "last_active_at": 1792838594682
-    },
-    "p_ammu_02": {
-      "id": "p_ammu_02",
-      "name": "Ammu",
-      "mobile_number": "9847012345",
-      "avatar": "girl_default",
-      "hat": "hat_flower",
-      "dress": "dress_sari",
-      "coins": 3450,
-      "matches_played": 8,
-      "matches_won": 5,
-      "high_score": 210,
-      "unlocked_avatars": [
-        "boy_default",
-        "girl_default",
-        "girl_artist"
-      ],
-      "unlocked_hats": [
-        "hat_none",
-        "hat_flower"
-      ],
-      "unlocked_dresses": [
-        "dress_mundu",
-        "dress_sari"
-      ],
-      "created_at": 1792669394682,
-      "last_active_at": 1792834994682
-    },
-    "p_chinnu_03": {
-      "id": "p_chinnu_03",
-      "name": "Chinnu",
-      "mobile_number": "9446054321",
-      "avatar": "explorer",
-      "hat": "hat_crown",
-      "dress": "dress_suit",
-      "coins": 12800,
-      "matches_played": 26,
-      "matches_won": 18,
-      "high_score": 540,
-      "unlocked_avatars": [
-        "boy_default",
-        "girl_default",
-        "explorer",
-        "pilot",
-        "ninja"
-      ],
-      "unlocked_hats": [
-        "hat_none",
-        "hat_crown"
-      ],
-      "unlocked_dresses": [
-        "dress_mundu",
-        "dress_suit"
-      ],
-      "created_at": 1792410194682,
-      "last_active_at": 1792840394682
-    }
-  },
+  "players": {},
   "stats": {
-    "total_games_completed": 48,
-    "total_coins_distributed": 24655,
-    "total_coins_spent": 12400,
-    "ad_impressions": 114,
-    "rewarded_ads_watched": 38
-  }
+    "total_games_completed": 0,
+    "total_coins_distributed": 0,
+    "total_coins_spent": 0,
+    "ad_impressions": 0,
+    "rewarded_ads_watched": 0
+  },
+  "analytics_events": []
 }

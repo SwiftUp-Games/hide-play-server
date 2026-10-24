@@ -46,6 +46,15 @@ export interface MonetizationConfig {
   test_devices: string[];
 }
 
+export interface AnalyticsEvent {
+  id: string;
+  timestamp: number;
+  player_id?: string;
+  player_name?: string;
+  event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN';
+  metadata?: Record<string, any>;
+}
+
 export interface GameAdminData {
   admin_mobile_number: string;
   pricing: PricingCatalog;
@@ -58,6 +67,7 @@ export interface GameAdminData {
     ad_impressions: number;
     rewarded_ads_watched: number;
   };
+  analytics_events: AnalyticsEvent[];
 }
 
 const DATA_DIR = path.resolve(__dirname, '../data');
@@ -116,66 +126,15 @@ const DEFAULT_DATA: GameAdminData = {
     rewarded_ad_unit_id: 'ca-app-pub-3940256099942544/5224354917',
     test_devices: ['SAMSUNG-S24-ULTRA', 'IPHONE-15-PRO', 'PIXEL-8-PRO']
   },
-  players: {
-    'p_kuttan_01': {
-      id: 'p_kuttan_01',
-      name: 'Kuttan',
-      mobile_number: '9876543210',
-      avatar: 'boy_default',
-      hat: 'hat_cap',
-      dress: 'dress_mundu',
-      coins: 8405,
-      matches_played: 14,
-      matches_won: 9,
-      high_score: 320,
-      unlocked_avatars: ['boy_default', 'girl_default', 'police', 'traditional'],
-      unlocked_hats: ['hat_none', 'hat_cap', 'hat_turban'],
-      unlocked_dresses: ['dress_mundu', 'dress_jersey'],
-      created_at: Date.now() - 86400000 * 3,
-      last_active_at: Date.now() - 3600000
-    },
-    'p_ammu_02': {
-      id: 'p_ammu_02',
-      name: 'Ammu',
-      mobile_number: '9847012345',
-      avatar: 'girl_default',
-      hat: 'hat_flower',
-      dress: 'dress_sari',
-      coins: 3450,
-      matches_played: 8,
-      matches_won: 5,
-      high_score: 210,
-      unlocked_avatars: ['boy_default', 'girl_default', 'girl_artist'],
-      unlocked_hats: ['hat_none', 'hat_flower'],
-      unlocked_dresses: ['dress_mundu', 'dress_sari'],
-      created_at: Date.now() - 86400000 * 2,
-      last_active_at: Date.now() - 7200000
-    },
-    'p_chinnu_03': {
-      id: 'p_chinnu_03',
-      name: 'Chinnu',
-      mobile_number: '9446054321',
-      avatar: 'explorer',
-      hat: 'hat_crown',
-      dress: 'dress_suit',
-      coins: 12800,
-      matches_played: 26,
-      matches_won: 18,
-      high_score: 540,
-      unlocked_avatars: ['boy_default', 'girl_default', 'explorer', 'pilot', 'ninja'],
-      unlocked_hats: ['hat_none', 'hat_crown'],
-      unlocked_dresses: ['dress_mundu', 'dress_suit'],
-      created_at: Date.now() - 86400000 * 5,
-      last_active_at: Date.now() - 1800000
-    }
-  },
+  players: {},
   stats: {
-    total_games_completed: 48,
-    total_coins_distributed: 24655,
-    total_coins_spent: 12400,
-    ad_impressions: 114,
-    rewarded_ads_watched: 38
-  }
+    total_games_completed: 0,
+    total_coins_distributed: 0,
+    total_coins_spent: 0,
+    ad_impressions: 0,
+    rewarded_ads_watched: 0
+  },
+  analytics_events: []
 };
 
 class GameStore {
@@ -199,8 +158,15 @@ class GameStore {
           ...parsed,
           pricing: { ...DEFAULT_DATA.pricing, ...(parsed.pricing || {}) },
           monetization: { ...DEFAULT_DATA.monetization, ...(parsed.monetization || {}) },
-          players: { ...DEFAULT_DATA.players, ...(parsed.players || {}) },
-          stats: { ...DEFAULT_DATA.stats, ...(parsed.stats || {}) }
+          players: parsed.players || {},
+          stats: {
+            total_games_completed: parsed.stats?.total_games_completed || 0,
+            total_coins_distributed: parsed.stats?.total_coins_distributed || 0,
+            total_coins_spent: parsed.stats?.total_coins_spent || 0,
+            ad_impressions: parsed.stats?.ad_impressions || 0,
+            rewarded_ads_watched: parsed.stats?.rewarded_ads_watched || 0
+          },
+          analytics_events: Array.isArray(parsed.analytics_events) ? parsed.analytics_events : []
         };
       }
     } catch (err) {
@@ -273,8 +239,9 @@ class GameStore {
     const activeToday = allPlayers.filter(p => now - p.last_active_at < 86400000).length;
     const newToday = allPlayers.filter(p => now - p.created_at < 86400000).length;
 
-    // Simulated Ad eCPM Calculation ($2.50 per 1000 rewarded impressions, $1.20 banner/interstitial)
-    const adRev = ((this.data.stats.rewarded_ads_watched * 0.025) + (this.data.stats.ad_impressions * 0.0015)).toFixed(2);
+    // Real dynamic Ad Revenue: calculated purely from actual ad events (no fake mock defaults)
+    const rawAdRev = (this.data.stats.rewarded_ads_watched * 0.025) + (this.data.stats.ad_impressions * 0.0015);
+    const adRev = rawAdRev > 0 ? rawAdRev.toFixed(2) : '0.00';
 
     return {
       live: {
@@ -300,8 +267,66 @@ class GameStore {
         ad_impressions: this.data.stats.ad_impressions,
         rewarded_ads_watched: this.data.stats.rewarded_ads_watched,
         estimated_ad_revenue_usd: adRev
-      }
+      },
+      recent_events: this.getRecentAnalyticsEvents(30)
     };
+  }
+
+  // --------------------------------------------------------------------------
+  // ANALYTICS & TELEMETRY
+  // --------------------------------------------------------------------------
+  public recordAnalyticsEvent(event: {
+    player_id?: string;
+    player_name?: string;
+    event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN';
+    metadata?: Record<string, any>;
+    timestamp?: number;
+  }): AnalyticsEvent {
+    const newEvent: AnalyticsEvent = {
+      id: 'evt_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      timestamp: event.timestamp || Date.now(),
+      player_id: event.player_id,
+      player_name: event.player_name,
+      event_name: event.event_name,
+      metadata: event.metadata || {}
+    };
+
+    if (!Array.isArray(this.data.analytics_events)) {
+      this.data.analytics_events = [];
+    }
+    this.data.analytics_events.unshift(newEvent);
+    if (this.data.analytics_events.length > 200) {
+      this.data.analytics_events = this.data.analytics_events.slice(0, 200);
+    }
+
+    // Dynamic stats aggregation based on actual events
+    if (event.event_name === 'GAME_END') {
+      this.data.stats.total_games_completed++;
+    } else if (event.event_name === 'AD_IMPRESSION') {
+      this.data.stats.ad_impressions++;
+    } else if (event.event_name === 'AD_REWARD') {
+      this.data.stats.rewarded_ads_watched++;
+      if (typeof event.metadata?.coins === 'number') {
+        this.data.stats.total_coins_distributed += event.metadata.coins;
+      }
+    } else if (event.event_name === 'SHOP_PURCHASE') {
+      if (typeof event.metadata?.price === 'number') {
+        this.data.stats.total_coins_spent += event.metadata.price;
+      }
+    } else if (event.event_name === 'COIN_TRANSACTION') {
+      if (event.metadata?.type === 'earned' && typeof event.metadata?.amount === 'number') {
+        this.data.stats.total_coins_distributed += event.metadata.amount;
+      } else if (event.metadata?.type === 'spent' && typeof event.metadata?.amount === 'number') {
+        this.data.stats.total_coins_spent += event.metadata.amount;
+      }
+    }
+
+    this.saveData(this.data);
+    return newEvent;
+  }
+
+  public getRecentAnalyticsEvents(limit: number = 50): AnalyticsEvent[] {
+    return (this.data.analytics_events || []).slice(0, limit);
   }
 
   // --------------------------------------------------------------------------
@@ -366,6 +391,12 @@ class GameStore {
       };
       this.data.players[id] = newPlayer;
       this.saveData(this.data);
+      this.recordAnalyticsEvent({
+        player_id: id,
+        player_name: newPlayer.name,
+        event_name: 'PLAYER_JOIN',
+        metadata: { is_new: true, avatar: newPlayer.avatar, coins: newPlayer.coins }
+      });
       return newPlayer;
     }
   }

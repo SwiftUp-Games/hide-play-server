@@ -8,7 +8,8 @@ import {
   Trash2, 
   RefreshCw, 
   Smartphone,
-  Gift
+  Gift,
+  Users
 } from 'lucide-react';
 
 interface Props {
@@ -170,8 +171,20 @@ export const PlayersTab: React.FC<Props> = ({ showToast }) => {
           <tbody>
             {filteredPlayers.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  {loading ? 'Fetching player profiles...' : 'No players found matching search query.'}
+                <td colSpan={6} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                  {loading ? (
+                    'Fetching player profiles...'
+                  ) : players.length === 0 ? (
+                    <div>
+                      <Users size={32} style={{ opacity: 0.5, marginBottom: '8px', display: 'block', margin: '0 auto 8px' }} />
+                      <p style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '15px' }}>0 Player Accounts Registered</p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                        Player profiles appear dynamically the moment users launch Hide & Play on their devices.
+                      </p>
+                    </div>
+                  ) : (
+                    'No players found matching search query.'
+                  )}
                 </td>
               </tr>
             ) : (

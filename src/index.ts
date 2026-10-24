@@ -209,6 +209,13 @@ app.post('/api/admin/monetization', requireAdmin, (req, res) => {
   return res.json({ success: true, monetization: updated });
 });
 
+app.get('/api/admin/analytics', requireAdmin, (req, res) => {
+  const limit = parseInt(req.query.limit as string || '50', 10);
+  return res.json({
+    events: gameStore.getRecentAnalyticsEvents(limit)
+  });
+});
+
 // ----------------------------------------------------------------------------
 // Admin Room Control Routes
 // ----------------------------------------------------------------------------
@@ -241,6 +248,21 @@ app.post('/api/game/player-sync', (req, res) => {
     player,
     config: gameStore.getPublicClientConfig()
   });
+});
+
+app.post('/api/game/analytics', (req, res) => {
+  const { player_id, player_name, event_name, metadata, timestamp } = req.body;
+  if (!event_name) {
+    return res.status(400).json({ success: false, message: 'Missing event_name parameter.' });
+  }
+  const event = gameStore.recordAnalyticsEvent({
+    player_id,
+    player_name,
+    event_name,
+    metadata,
+    timestamp: timestamp ? Number(timestamp) : Date.now()
+  });
+  return res.json({ success: true, event });
 });
 
 app.get('/health', (_req, res) => {
@@ -691,6 +713,13 @@ function createRoomInternal(
     settings: room.settings
   });
 
+  gameStore.recordAnalyticsEvent({
+    player_id: String(hostPeerId),
+    player_name: hostPlayer.name,
+    event_name: 'PLAYER_JOIN',
+    metadata: { room_code: code, action: 'room_created', mode: room.mode }
+  });
+
   broadcastLobbyState(room);
   console.log(`[Room Created] ${code} by ${hostPlayer.name} (Public: ${room.isPublic})`);
   return room;
@@ -720,6 +749,13 @@ function joinRoomInternal(
 
   room.players.set(peerId, player);
   clientToRoom.set(ws, { roomCode: room.code, peerId });
+
+  gameStore.recordAnalyticsEvent({
+    player_id: String(peerId),
+    player_name: player.name,
+    event_name: 'PLAYER_JOIN',
+    metadata: { room_code: room.code, action: 'room_joined', mode: room.mode }
+  });
 
   safeSend(ws, {
     type: 'ROOM_JOINED',
@@ -812,6 +848,17 @@ function triggerAutoStartCountdown(room: Room) {
         map: room.settings.selected_map
       });
       console.log(`[Game Launched] Room ${room.code} is now in_game! Finder: Peer ${chosenFinderId}`);
+
+      gameStore.recordAnalyticsEvent({
+        event_name: 'GAME_START',
+        metadata: {
+          room_code: room.code,
+          mode: room.mode,
+          map: room.settings.selected_map,
+          players_count: room.players.size,
+          finder_id: chosenFinderId
+        }
+      });
     }
   }, 1000);
 }

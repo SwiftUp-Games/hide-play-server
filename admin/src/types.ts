@@ -36,11 +36,21 @@ export interface MonetizationMetrics {
   estimated_ad_revenue_usd: string;
 }
 
+export interface AnalyticsEvent {
+  id: string;
+  timestamp: number;
+  player_id?: string;
+  player_name?: string;
+  event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN';
+  metadata?: Record<string, any>;
+}
+
 export interface DashboardData {
   live: LiveStats;
   player_metrics: PlayerMetrics;
   economy_metrics: EconomyMetrics;
   monetization_metrics: MonetizationMetrics;
+  recent_events?: AnalyticsEvent[];
 }
 
 export interface PlayerAccount {

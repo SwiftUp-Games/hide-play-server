@@ -8,7 +8,12 @@ import {
   RefreshCw, 
   Sparkles, 
   Tv, 
-  Layers 
+  Layers,
+  Activity,
+  ShoppingBag,
+  Trophy,
+  PlayCircle,
+  UserPlus
 } from 'lucide-react';
 
 interface Props {
@@ -350,6 +355,106 @@ export const DashboardTab: React.FC<Props> = ({ data, loading, onRefresh, showTo
           </div>
         </div>
 
+      </div>
+
+      {/* Live Game Telemetry Feed */}
+      <div className="glass-panel" style={{ marginTop: '24px', padding: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Activity size={20} color="var(--primary-gold)" />
+            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+              Live Telemetry & Activity Stream ({data.recent_events?.length || 0})
+            </h3>
+          </div>
+          <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+            Real-time gameplay, purchases & ad events
+          </span>
+        </div>
+
+        {(!data.recent_events || data.recent_events.length === 0) ? (
+          <div style={{
+            padding: '36px 16px',
+            textAlign: 'center',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: '12px',
+            color: 'var(--text-muted)'
+          }}>
+            <Activity size={28} style={{ opacity: 0.5, marginBottom: '8px' }} />
+            <p style={{ fontSize: '14px', fontWeight: 600 }}>0 Telemetry Events Recorded</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '4px' }}>
+              Events stream here live as players launch games, enter arenas, buy wardrobe items, or earn coins.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
+            {data.recent_events.map((evt) => {
+              const timeAgo = Math.max(1, Math.floor((Date.now() - evt.timestamp) / 1000));
+              const timeDisplay = timeAgo < 60 ? `${timeAgo}s ago` : `${Math.floor(timeAgo / 60)}m ago`;
+              
+              let badgeColor = 'badge-blue';
+              let eventIcon = <Activity size={14} />;
+              let eventLabel: string = evt.event_name;
+
+              if (evt.event_name === 'GAME_START') {
+                badgeColor = 'badge-green';
+                eventIcon = <PlayCircle size={14} />;
+                eventLabel = 'MATCH LAUNCH';
+              } else if (evt.event_name === 'GAME_END') {
+                badgeColor = 'badge-gold';
+                eventIcon = <Trophy size={14} />;
+                eventLabel = 'ROUND COMPLETE';
+              } else if (evt.event_name === 'SHOP_PURCHASE') {
+                badgeColor = 'badge-gold';
+                eventIcon = <ShoppingBag size={14} />;
+                eventLabel = 'SHOP BUY';
+              } else if (evt.event_name === 'AD_IMPRESSION' || evt.event_name === 'AD_REWARD') {
+                badgeColor = 'badge-purple';
+                eventIcon = <Tv size={14} />;
+                eventLabel = 'AD REWARD';
+              } else if (evt.event_name === 'PLAYER_JOIN') {
+                badgeColor = 'badge-blue';
+                eventIcon = <UserPlus size={14} />;
+                eventLabel = 'PLAYER JOIN';
+              } else if (evt.event_name === 'COIN_TRANSACTION') {
+                badgeColor = 'badge-gold';
+                eventIcon = <Coins size={14} />;
+                eventLabel = 'COINS';
+              }
+
+              return (
+                <div
+                  key={evt.id}
+                  style={{
+                    background: 'rgba(8, 18, 12, 0.6)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className={`badge ${badgeColor}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {eventIcon}
+                      <span>{eventLabel}</span>
+                    </span>
+                    <span style={{ fontSize: '13px', color: 'var(--text-main)', fontWeight: 600 }}>
+                      {evt.player_name || 'System / Host'}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {evt.metadata ? JSON.stringify(evt.metadata).replace(/["{}]/g, '').replace(/,/g, ' • ') : ''}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                    {timeDisplay}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

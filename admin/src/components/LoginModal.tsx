@@ -1,48 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { adminApi } from '../api';
-import { ShieldCheck, Smartphone, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
+import { KeyRound, AlertCircle, ArrowRight, RotateCcw, Sparkles } from 'lucide-react';
 
 interface Props {
-  onLoginSuccess: (mobile: string) => void;
+  onLoginSuccess: (code: string) => void;
 }
 
+const MASTER_DEFAULT_CODE = '8606094557';
+
 export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
-  const [mobile, setMobile] = useState('');
+  const [digits, setDigits] = useState<string[]>(Array(10).fill(''));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleDigitsOnly = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setMobile(val);
-    setError(null);
-  };
+  // Focus the first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mobile.length !== 10) {
-      setError('Please enter your 10-digit mobile authentication number.');
+  const fullCode = digits.join('');
+
+  const submitCode = async (codeToSubmit: string) => {
+    if (codeToSubmit.length !== 10) {
+      setError('Please enter the complete 10-digit authentication code.');
       return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      const res = await adminApi.login(mobile);
+      const res = await adminApi.login(codeToSubmit);
       if (res.success) {
-        onLoginSuccess(mobile);
+        onLoginSuccess(codeToSubmit);
       } else {
-        setError(res.message || 'Invalid mobile authentication code.');
+        setError(res.message || 'Invalid 10-digit authentication code.');
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please verify the code.');
+      setError(err.message || 'Authentication failed. Please verify the 10-digit code.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUseDefault = () => {
-    setMobile('9876543210');
+  const handleDigitChange = (index: number, value: string) => {
     setError(null);
+    const cleanDigit = value.replace(/\D/g, '').slice(-1);
+
+    const newDigits = [...digits];
+    newDigits[index] = cleanDigit;
+    setDigits(newDigits);
+
+    if (cleanDigit) {
+      // Advance to next box if available
+      if (index < 9) {
+        inputRefs.current[index + 1]?.focus();
+      } else {
+        // If 10th digit is filled, auto-verify!
+        const completeCode = newDigits.join('');
+        if (completeCode.length === 10) {
+          submitCode(completeCode);
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        const newDigits = [...digits];
+        newDigits[index - 1] = '';
+        setDigits(newDigits);
+        inputRefs.current[index - 1]?.focus();
+      } else {
+        const newDigits = [...digits];
+        newDigits[index] = '';
+        setDigits(newDigits);
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 9) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 10);
+    if (!pasted) return;
+
+    const newDigits = Array(10).fill('');
+    for (let i = 0; i < pasted.length; i++) {
+      newDigits[i] = pasted[i];
+    }
+    setDigits(newDigits);
+
+    const nextIndex = Math.min(pasted.length, 9);
+    inputRefs.current[nextIndex]?.focus();
+
+    if (pasted.length === 10) {
+      submitCode(pasted);
+    }
+  };
+
+  const handleClear = () => {
+    setDigits(Array(10).fill(''));
+    setError(null);
+    inputRefs.current[0]?.focus();
+  };
+
+  const handleUseDefault = () => {
+    const chars = MASTER_DEFAULT_CODE.split('');
+    setDigits(chars);
+    setError(null);
+    submitCode(MASTER_DEFAULT_CODE);
   };
 
   return (
@@ -51,12 +122,14 @@ export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
         className="glass-panel glass-panel-gold animate-fade-in" 
         style={{
           width: '100%',
-          maxWidth: '440px',
-          padding: '36px 32px',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.8), 0 0 40px rgba(255, 215, 82, 0.12)'
+          maxWidth: '520px',
+          padding: '36px 28px',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.85), 0 0 50px rgba(255, 215, 82, 0.15)',
+          borderRadius: '24px'
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '26px' }}>
           <div style={{ 
             fontSize: '48px', 
             marginBottom: '8px', 
@@ -75,75 +148,157 @@ export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
           </h1>
           <p style={{ 
             fontSize: '13px', 
-            fontWeight: 600, 
+            fontWeight: 700, 
             color: 'var(--accent-green)',
-            letterSpacing: '0.5px',
+            letterSpacing: '0.8px',
             textTransform: 'uppercase',
             marginTop: '2px'
           }}>
-            Creator & Studio Admin Panel
+            Studio Creator Admin Panel
           </p>
         </div>
 
+        {/* Security Badge */}
         <div style={{
           background: 'rgba(46, 204, 113, 0.08)',
           border: '1px solid rgba(46, 204, 113, 0.25)',
           borderRadius: '12px',
-          padding: '12px 14px',
+          padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: '10px',
-          marginBottom: '22px'
+          marginBottom: '26px'
         }}>
-          <ShieldCheck size={20} color="var(--accent-green)" />
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Code-Based 10-Digit Mobile Authentication
+          <KeyRound size={18} color="var(--primary-gold)" />
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+            Enter 10-Digit OTP Authentication Code
           </span>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '18px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '13px', 
-              fontWeight: 600, 
-              color: 'var(--text-muted)',
-              marginBottom: '8px'
+        {/* 10-Digit OTP Column Grid */}
+        <form onSubmit={(e) => { e.preventDefault(); submitCode(fullCode); }}>
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              flexWrap: 'nowrap'
             }}>
-              Enter 10-Digit Mobile Number
-            </label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ 
-                position: 'absolute', 
-                left: '14px', 
-                top: '50%', 
-                transform: 'translateY(-50%)',
-                color: 'var(--text-dim)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <Smartphone size={18} />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>+91</span>
+              {/* First 5 digits */}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {digits.slice(0, 5).map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={(el) => { inputRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    onPaste={handlePaste}
+                    style={{
+                      width: '38px',
+                      height: '50px',
+                      textAlign: 'center',
+                      fontSize: '22px',
+                      fontFamily: 'var(--font-game)',
+                      color: 'var(--primary-gold)',
+                      background: digit ? 'rgba(255, 215, 82, 0.12)' : 'rgba(10, 25, 16, 0.8)',
+                      border: digit ? '2px solid var(--primary-gold)' : '1px solid var(--border-subtle)',
+                      borderRadius: '10px',
+                      outline: 'none',
+                      boxShadow: digit ? '0 0 12px rgba(255, 215, 82, 0.25)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  />
+                ))}
               </div>
-              <input
-                type="tel"
-                value={mobile}
-                onChange={handleDigitsOnly}
-                placeholder="98765 43210"
-                autoFocus
-                style={{
-                  width: '100%',
-                  paddingLeft: '72px',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  letterSpacing: '2px',
-                  textAlign: 'left'
-                }}
-              />
+
+              {/* Separator dash */}
+              <div style={{
+                color: 'var(--primary-gold)',
+                fontWeight: 900,
+                fontSize: '20px',
+                padding: '0 2px'
+              }}>
+                —
+              </div>
+
+              {/* Last 5 digits */}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {digits.slice(5, 10).map((digit, i) => {
+                  const idx = i + 5;
+                  return (
+                    <input
+                      key={idx}
+                      ref={(el) => { inputRefs.current[idx] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleDigitChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(idx, e)}
+                      onPaste={handlePaste}
+                      style={{
+                        width: '38px',
+                        height: '50px',
+                        textAlign: 'center',
+                        fontSize: '22px',
+                        fontFamily: 'var(--font-game)',
+                        color: 'var(--primary-gold)',
+                        background: digit ? 'rgba(255, 215, 82, 0.12)' : 'rgba(10, 25, 16, 0.8)',
+                        border: digit ? '2px solid var(--primary-gold)' : '1px solid var(--border-subtle)',
+                        borderRadius: '10px',
+                        outline: 'none',
+                        boxShadow: digit ? '0 0 12px rgba(255, 215, 82, 0.25)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Helper status text */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginTop: '12px',
+              padding: '0 4px'
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+                {fullCode.length}/10 digits entered
+              </span>
+              {fullCode.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <RotateCcw size={12} />
+                  <span>Clear</span>
+                </button>
+              )}
             </div>
           </div>
 
+          {/* Error Message */}
           {error && (
             <div style={{
               background: 'rgba(231, 76, 60, 0.15)',
@@ -155,34 +310,37 @@ export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              marginBottom: '16px'
+              marginBottom: '18px'
             }}>
               <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
+          {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading || mobile.length !== 10}
+            disabled={loading || fullCode.length !== 10}
             className="btn-gold"
             style={{
               width: '100%',
               justifyContent: 'center',
               padding: '14px',
               fontSize: '16px',
-              opacity: (loading || mobile.length !== 10) ? 0.6 : 1
+              opacity: (loading || fullCode.length !== 10) ? 0.5 : 1,
+              cursor: (loading || fullCode.length !== 10) ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Verifying Code...' : (
+            {loading ? 'Verifying OTP...' : (
               <>
-                <span>Access Admin Studio</span>
+                <span>Authenticate & Enter Studio</span>
                 <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
+        {/* Quick Fill Button */}
         <div style={{ 
           marginTop: '22px', 
           paddingTop: '16px', 
@@ -193,16 +351,21 @@ export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
             type="button"
             onClick={handleUseDefault}
             style={{
-              background: 'transparent',
-              color: 'var(--text-muted)',
+              background: 'rgba(255, 215, 82, 0.08)',
+              border: '1px solid rgba(255, 215, 82, 0.25)',
+              borderRadius: '8px',
+              padding: '8px 14px',
+              color: 'var(--primary-gold)',
               fontSize: '12px',
+              fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              cursor: 'pointer'
             }}
           >
             <Sparkles size={14} color="var(--primary-gold)" />
-            <span>Use Default Test Mobile Code (9876543210)</span>
+            <span>Fill Master Code ({MASTER_DEFAULT_CODE})</span>
           </button>
         </div>
       </div>

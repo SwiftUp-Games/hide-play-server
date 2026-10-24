@@ -51,21 +51,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 // API CALLS
 // ----------------------------------------------------------------------------
 export const adminApi = {
-  // Auth
-  async login(mobile: string): Promise<{ success: boolean; token: string; message?: string }> {
+  // Auth (10-Digit OTP Authentication Code)
+  async login(code: string): Promise<{ success: boolean; token: string; message?: string }> {
     const res = await request<{ success: boolean; token: string; message?: string }>('/api/admin/login', {
       method: 'POST',
-      body: JSON.stringify({ mobile })
+      body: JSON.stringify({ code })
     });
     if (res.token) {
-      setSession(res.token, mobile);
+      setSession(res.token, code);
     }
     return res;
   },
 
-  async verifySession(): Promise<{ valid: boolean; mobile?: string }> {
+  async verifySession(): Promise<{ valid: boolean; code?: string }> {
     try {
-      const res = await request<{ valid: boolean; mobile?: string }>('/api/admin/me');
+      const res = await request<{ valid: boolean; code?: string }>('/api/admin/me');
       return res;
     } catch {
       clearSession();
@@ -81,11 +81,15 @@ export const adminApi = {
     }
   },
 
-  async updateAdminMobile(newMobile: string): Promise<{ success: boolean; message: string }> {
-    return request('/api/admin/change-mobile', {
+  async updateAdminCode(newCode: string): Promise<{ success: boolean; message: string }> {
+    return request('/api/admin/change-code', {
       method: 'POST',
-      body: JSON.stringify({ mobile: newMobile })
+      body: JSON.stringify({ code: newCode })
     });
+  },
+
+  async updateAdminMobile(newMobile: string): Promise<{ success: boolean; message: string }> {
+    return this.updateAdminCode(newMobile);
   },
 
   // Dashboard Overview

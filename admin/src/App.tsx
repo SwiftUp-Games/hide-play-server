@@ -14,7 +14,7 @@ import {
   Tv, 
   Shield, 
   LogOut, 
-  Smartphone, 
+  KeyRound, 
   CheckCircle, 
   AlertCircle 
 } from 'lucide-react';
@@ -62,7 +62,7 @@ export function App() {
       adminApi.verifySession().then(res => {
         if (res.valid) {
           setIsAuthenticated(true);
-          setAdminPhone(phone || '9876543210');
+          setAdminPhone(phone || '8606094557');
         } else {
           setIsAuthenticated(false);
         }
@@ -82,10 +82,10 @@ export function App() {
     return () => clearInterval(interval);
   }, [isAuthenticated, activeTab]);
 
-  const handleLoginSuccess = (mobile: string) => {
+  const handleLoginSuccess = (code: string) => {
     setIsAuthenticated(true);
-    setAdminPhone(mobile);
-    showToast(`Welcome Admin! Authenticated with mobile code +91 ${mobile}`, 'success');
+    setAdminPhone(code);
+    showToast(`Welcome Admin! Authenticated with 10-digit OTP code ${code}`, 'success');
     fetchDashboard();
   };
 
@@ -168,8 +168,8 @@ export function App() {
               alignItems: 'center',
               gap: '6px'
             }}>
-              <Smartphone size={13} color="var(--primary-gold)" />
-              <span>+91 {adminPhone}</span>
+              <KeyRound size={13} color="var(--primary-gold)" />
+              <span>OTP: {adminPhone}</span>
             </div>
 
             <button

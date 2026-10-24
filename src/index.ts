@@ -108,9 +108,9 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 // Admin Auth Routes
 // ----------------------------------------------------------------------------
 app.post('/api/admin/login', (req, res) => {
-  const { mobile } = req.body;
-  if (!mobile || !gameStore.verifyMobile(mobile)) {
-    return res.status(401).json({ success: false, message: 'Invalid 10-digit mobile authentication number.' });
+  const code = req.body.code || req.body.otp || req.body.mobile;
+  if (!code || !gameStore.verifyCode(code)) {
+    return res.status(401).json({ success: false, message: 'Invalid 10-digit authentication code.' });
   }
   const token = gameStore.createSession();
   return res.json({ success: true, token, message: 'Authentication successful.' });
@@ -127,9 +127,9 @@ app.post('/api/admin/logout', (req, res) => {
   return res.json({ success: true });
 });
 
-app.post('/api/admin/change-mobile', requireAdmin, (req, res) => {
-  const { mobile } = req.body;
-  const result = gameStore.updateAdminMobile(mobile);
+app.post(['/api/admin/change-code', '/api/admin/change-mobile'], requireAdmin, (req, res) => {
+  const code = req.body.code || req.body.new_code || req.body.mobile;
+  const result = gameStore.updateAdminCode(code);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 });

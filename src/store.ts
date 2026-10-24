@@ -64,7 +64,7 @@ const DATA_DIR = path.resolve(__dirname, '../data');
 const DATA_FILE = path.join(DATA_DIR, 'game_admin_store.json');
 
 const DEFAULT_DATA: GameAdminData = {
-  admin_mobile_number: process.env.ADMIN_MOBILE_NUMBER || '9876543210',
+  admin_mobile_number: process.env.ADMIN_OTP_CODE || process.env.ADMIN_MOBILE_NUMBER || '8606094557',
   pricing: {
     avatars: {
       boy_default: 0,
@@ -222,12 +222,16 @@ class GameStore {
   }
 
   // --------------------------------------------------------------------------
-  // AUTH (10-Digit Mobile Number Code)
+  // AUTH (10-Digit OTP Authentication Code)
   // --------------------------------------------------------------------------
   public verifyMobile(mobile: string): boolean {
     const cleanInput = (mobile || '').trim().replace(/\D/g, '');
-    const cleanAdmin = (this.data.admin_mobile_number || '9876543210').trim().replace(/\D/g, '');
+    const cleanAdmin = (this.data.admin_mobile_number || '8606094557').trim().replace(/\D/g, '');
     return cleanInput.length === 10 && cleanInput === cleanAdmin;
+  }
+
+  public verifyCode(code: string): boolean {
+    return this.verifyMobile(code);
   }
 
   public createSession(): string {
@@ -248,11 +252,15 @@ class GameStore {
   public updateAdminMobile(newMobile: string): { success: boolean; message: string } {
     const clean = (newMobile || '').trim().replace(/\D/g, '');
     if (clean.length !== 10) {
-      return { success: false, message: 'Admin mobile number must be exactly 10 digits.' };
+      return { success: false, message: 'Authentication code must be exactly 10 digits.' };
     }
     this.data.admin_mobile_number = clean;
     this.saveData(this.data);
-    return { success: true, message: `Admin mobile updated to ${clean}` };
+    return { success: true, message: `Admin OTP authentication code updated to ${clean}` };
+  }
+
+  public updateAdminCode(newCode: string): { success: boolean; message: string } {
+    return this.updateAdminMobile(newCode);
   }
 
   // --------------------------------------------------------------------------

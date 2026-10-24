@@ -84,7 +84,7 @@
     "target_os": "Android 8.0+"
   },
   "tester_analytics": {
-    "page_views": 11,
+    "page_views": 12,
     "unique_visitors": 1,
     "download_clicks": 3,
     "game_opens": 0,
@@ -92,12 +92,12 @@
       "Android": 1,
       "iOS": 0,
       "Windows": 0,
-      "Mac": 10,
+      "Mac": 11,
       "Other": 0
     },
     "daily_stats": {
       "2026-10-24": {
-        "views": 11,
+        "views": 12,
         "downloads": 3,
         "game_opens": 0
       }

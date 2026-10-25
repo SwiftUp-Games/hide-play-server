@@ -71,13 +71,13 @@
     ]
   },
   "download_config": {
-    "r2_download_url": "https://pub-demo.r2.dev/HideAndPlay.apk",
-    "apk_version": "v1.2.0-beta",
-    "apk_size_mb": "70 MB",
+    "r2_download_url": "https://github.com/SwiftUp-Games/hide-play-server/releases/download/apk/HideAndPlay.apk",
+    "apk_version": "v1.0.0-beta",
+    "apk_size_mb": "61 MB",
     "apk_release_notes": [
-      "Authentic Kerala village hide & seek gameplay (ഒളിച്ചു കളി)",
+      "Authentic Kerala village hide & seek gameplay",
       "Instant 4-digit room code join & matchmaking",
-      "Ultra-crisp 3D chunky action controls & spatial proximity voice bridge",
+      "Ultra-crisp chunky action controls & spatial proximity voice bridge",
       "12+ customizable traditional avatars, dresses, & accessories"
     ],
     "download_enabled": true,

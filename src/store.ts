@@ -159,9 +159,9 @@ const DEFAULT_DATA: GameAdminData = {
     test_devices: ['SAMSUNG-S24-ULTRA', 'IPHONE-15-PRO', 'PIXEL-8-PRO']
   },
   download_config: {
-    r2_download_url: process.env.R2_APK_DOWNLOAD_URL || process.env.R2_DOWNLOAD_URL || 'https://github.com/SwiftUp-Games/hide-play-game/releases/download/apk/HideAndPlay.apk',
+    r2_download_url: process.env.R2_APK_DOWNLOAD_URL || process.env.R2_DOWNLOAD_URL || 'https://github.com/SwiftUp-Games/hide-play-server/releases/download/apk/HideAndPlay.apk',
     apk_version: 'v1.0.0-beta',
-    apk_size_mb: '78 MB',
+    apk_size_mb: '61 MB',
     apk_release_notes: [
       'Authentic hide & seek village gameplay',
       'Instant 4-digit room code join & matchmaking',

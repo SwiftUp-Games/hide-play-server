@@ -33,8 +33,17 @@ export interface MonetizationConfig {
   banner_ads_enabled: boolean;
   interstitial_ads_enabled: boolean;
   rewarded_video_enabled: boolean;
+  use_test_ads: boolean;
   interstitial_interval_matches: number;
   rewarded_video_coin_reward: number;
+  reward_diamonds_amount: number;
+  daily_impression_target: number;
+  banner_refresh_seconds: number;
+  reward_cooldown_seconds: number;
+  max_daily_rewarded_views: number;
+  banner_ecpm_usd: number;
+  rewarded_ecpm_usd: number;
+  cpc_usd: number;
   daily_reward_coins: number;
   win_coin_reward: number;
   catch_hider_coin_reward: number;
@@ -69,10 +78,13 @@ export interface TesterFeedback {
   timestamp: number;
   name: string;
   rating: number; // 1 to 5
-  category: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general';
+  category: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general' | 'suggestion';
   device_model: string;
   comments: string;
   status: 'new' | 'reviewed' | 'resolved';
+  source?: 'game' | 'web';
+  platform?: string;
+  app_version?: string;
 }
 
 export interface TesterAnalytics {
@@ -97,7 +109,17 @@ export interface GameAdminData {
     total_coins_distributed: number;
     total_coins_spent: number;
     ad_impressions: number;
+    banner_impressions?: number;
     rewarded_ads_watched: number;
+    ad_clicks?: number;
+    diamonds_distributed?: number;
+    daily_ad_stats?: Record<string, {
+      impressions: number;
+      banner_impressions: number;
+      rewarded_views: number;
+      clicks: number;
+      diamonds_distributed: number;
+    }>;
   };
   analytics_events: AnalyticsEvent[];
 }
@@ -144,18 +166,27 @@ const DEFAULT_DATA: GameAdminData = {
   monetization: {
     ads_enabled: true,
     banner_ads_enabled: true,
-    interstitial_ads_enabled: true,
+    interstitial_ads_enabled: false,
     rewarded_video_enabled: true,
+    use_test_ads: false,
     interstitial_interval_matches: 2,
     rewarded_video_coin_reward: 50,
+    reward_diamonds_amount: 5,
+    daily_impression_target: 10,
+    banner_refresh_seconds: 30,
+    reward_cooldown_seconds: 60,
+    max_daily_rewarded_views: 8,
+    banner_ecpm_usd: 1.50,
+    rewarded_ecpm_usd: 25.00,
+    cpc_usd: 0.12,
     daily_reward_coins: 100,
     win_coin_reward: 25,
     catch_hider_coin_reward: 5,
     vip_multiplier: 2.0,
-    admob_app_id: 'ca-app-pub-3940256099942544~3347511713',
-    banner_ad_unit_id: 'ca-app-pub-3940256099942544/6300978111',
+    admob_app_id: 'ca-app-pub-4147727730689223~4678106368',
+    banner_ad_unit_id: 'ca-app-pub-4147727730689223/9032198625',
     interstitial_ad_unit_id: 'ca-app-pub-3940256099942544/1033173712',
-    rewarded_ad_unit_id: 'ca-app-pub-3940256099942544/5224354917',
+    rewarded_ad_unit_id: 'ca-app-pub-4147727730689223/9590601828',
     test_devices: ['SAMSUNG-S24-ULTRA', 'IPHONE-15-PRO', 'PIXEL-8-PRO']
   },
   download_config: {
@@ -186,7 +217,11 @@ const DEFAULT_DATA: GameAdminData = {
     total_coins_distributed: 0,
     total_coins_spent: 0,
     ad_impressions: 0,
-    rewarded_ads_watched: 0
+    banner_impressions: 0,
+    rewarded_ads_watched: 0,
+    ad_clicks: 0,
+    diamonds_distributed: 0,
+    daily_ad_stats: {}
   },
   analytics_events: []
 };
@@ -229,7 +264,11 @@ class GameStore {
             total_coins_distributed: parsed.stats?.total_coins_distributed || 0,
             total_coins_spent: parsed.stats?.total_coins_spent || 0,
             ad_impressions: parsed.stats?.ad_impressions || 0,
-            rewarded_ads_watched: parsed.stats?.rewarded_ads_watched || 0
+            banner_impressions: parsed.stats?.banner_impressions || parsed.stats?.ad_impressions || 0,
+            rewarded_ads_watched: parsed.stats?.rewarded_ads_watched || 0,
+            ad_clicks: parsed.stats?.ad_clicks || 0,
+            diamonds_distributed: parsed.stats?.diamonds_distributed || 0,
+            daily_ad_stats: parsed.stats?.daily_ad_stats || {}
           },
           analytics_events: Array.isArray(parsed.analytics_events) ? parsed.analytics_events : []
         };
@@ -304,9 +343,8 @@ class GameStore {
     const activeToday = allPlayers.filter(p => now - p.last_active_at < 86400000).length;
     const newToday = allPlayers.filter(p => now - p.created_at < 86400000).length;
 
-    // Real dynamic Ad Revenue: calculated purely from actual ad events (no fake mock defaults)
-    const rawAdRev = (this.data.stats.rewarded_ads_watched * 0.025) + (this.data.stats.ad_impressions * 0.0015);
-    const adRev = rawAdRev > 0 ? rawAdRev.toFixed(2) : '0.00';
+    // Real dynamic Ad Metrics: calculated purely from actual ad events (no fake mock defaults)
+    const monMetrics = this.getMonetizationMetrics();
 
     return {
       live: {
@@ -329,9 +367,9 @@ class GameStore {
       },
       monetization_metrics: {
         ads_enabled: this.data.monetization.ads_enabled,
-        ad_impressions: this.data.stats.ad_impressions,
-        rewarded_ads_watched: this.data.stats.rewarded_ads_watched,
-        estimated_ad_revenue_usd: adRev
+        ad_impressions: monMetrics.total_impressions,
+        rewarded_ads_watched: monMetrics.rewarded_views,
+        estimated_ad_revenue_usd: monMetrics.estimated_revenue_usd
       },
       recent_events: this.getRecentAnalyticsEvents(30)
     };
@@ -368,9 +406,13 @@ class GameStore {
     if (event.event_name === 'GAME_END') {
       this.data.stats.total_games_completed++;
     } else if (event.event_name === 'AD_IMPRESSION') {
-      this.data.stats.ad_impressions++;
+      if (!event.metadata?.handled_by_tracker) {
+        this.data.stats.ad_impressions++;
+      }
     } else if (event.event_name === 'AD_REWARD') {
-      this.data.stats.rewarded_ads_watched++;
+      if (!event.metadata?.handled_by_tracker) {
+        this.data.stats.rewarded_ads_watched++;
+      }
       if (typeof event.metadata?.coins === 'number') {
         this.data.stats.total_coins_distributed += event.metadata.coins;
       }
@@ -548,12 +590,206 @@ class GameStore {
   }
 
   public recordAdImpression(rewarded: boolean = false): void {
-    if (rewarded) {
-      this.data.stats.rewarded_ads_watched += 1;
-    } else {
-      this.data.stats.ad_impressions += 1;
+    this.trackAdEvent({
+      type: rewarded ? 'rewarded_completion' : 'banner_impression'
+    });
+  }
+
+  public trackAdEvent(event: {
+    type: 'banner_impression' | 'rewarded_completion' | 'ad_click';
+    player_id?: string;
+    player_name?: string;
+    diamonds_awarded?: number;
+    ad_unit_id?: string;
+  }): { success: boolean; stats: any } {
+    const todayKey = new Date().toISOString().split('T')[0];
+    if (!this.data.stats.daily_ad_stats) {
+      this.data.stats.daily_ad_stats = {};
     }
+    if (!this.data.stats.daily_ad_stats[todayKey]) {
+      this.data.stats.daily_ad_stats[todayKey] = {
+        impressions: 0,
+        banner_impressions: 0,
+        rewarded_views: 0,
+        clicks: 0,
+        diamonds_distributed: 0
+      };
+    }
+    const today = this.data.stats.daily_ad_stats[todayKey];
+
+    if (event.type === 'banner_impression') {
+      this.data.stats.ad_impressions = (this.data.stats.ad_impressions || 0) + 1;
+      this.data.stats.banner_impressions = (this.data.stats.banner_impressions || 0) + 1;
+      today.impressions = (today.impressions || 0) + 1;
+      today.banner_impressions = (today.banner_impressions || 0) + 1;
+
+      this.recordAnalyticsEvent({
+        player_id: event.player_id,
+        player_name: event.player_name || 'Player',
+        event_name: 'AD_IMPRESSION',
+        metadata: { format: 'banner', unit_id: event.ad_unit_id || this.data.monetization.banner_ad_unit_id, handled_by_tracker: true }
+      });
+    } else if (event.type === 'rewarded_completion') {
+      this.data.stats.ad_impressions = (this.data.stats.ad_impressions || 0) + 1;
+      this.data.stats.rewarded_ads_watched = (this.data.stats.rewarded_ads_watched || 0) + 1;
+      const diamonds = event.diamonds_awarded || this.data.monetization.reward_diamonds_amount || 5;
+      this.data.stats.diamonds_distributed = (this.data.stats.diamonds_distributed || 0) + diamonds;
+      
+      today.impressions = (today.impressions || 0) + 1;
+      today.rewarded_views = (today.rewarded_views || 0) + 1;
+      today.diamonds_distributed = (today.diamonds_distributed || 0) + diamonds;
+
+      this.recordAnalyticsEvent({
+        player_id: event.player_id,
+        player_name: event.player_name || 'Player',
+        event_name: 'AD_REWARD',
+        metadata: { format: 'rewarded_video', diamonds, unit_id: event.ad_unit_id || this.data.monetization.rewarded_ad_unit_id, handled_by_tracker: true }
+      });
+    } else if (event.type === 'ad_click') {
+      this.data.stats.ad_clicks = (this.data.stats.ad_clicks || 0) + 1;
+      today.clicks = (today.clicks || 0) + 1;
+
+      this.recordAnalyticsEvent({
+        player_id: event.player_id,
+        player_name: event.player_name || 'Player',
+        event_name: 'AD_IMPRESSION',
+        metadata: { format: 'click', unit_id: event.ad_unit_id, handled_by_tracker: true }
+      });
+    }
+
     this.saveData(this.data);
+    return { success: true, stats: this.getMonetizationMetrics() };
+  }
+
+  public getMonetizationMetrics() {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const dailyStats = this.data.stats.daily_ad_stats || {};
+    const todayStat = dailyStats[todayKey] || {
+      impressions: 0,
+      banner_impressions: 0,
+      rewarded_views: 0,
+      clicks: 0,
+      diamonds_distributed: 0
+    };
+
+    const bannerEcpm = Number(this.data.monetization.banner_ecpm_usd) || 1.50;
+    const rewardedEcpm = Number(this.data.monetization.rewarded_ecpm_usd) || 25.00;
+    const cpcRate = Number(this.data.monetization.cpc_usd) || 0.12;
+
+    const bannerImpressions = this.data.stats.banner_impressions || 0;
+    const rewardedViews = this.data.stats.rewarded_ads_watched || 0;
+    const totalImpressions = bannerImpressions + rewardedViews;
+    const totalClicks = this.data.stats.ad_clicks || 0;
+    const diamondsDistributed = this.data.stats.diamonds_distributed || 0;
+
+    // Estimated Revenue Calculation
+    const rawRevenue = (bannerImpressions * (bannerEcpm / 1000)) + 
+                        (rewardedViews * (rewardedEcpm / 1000)) + 
+                        (totalClicks * cpcRate);
+    const estimatedRevenue = rawRevenue.toFixed(2);
+
+    // Blended eCPM = (Total Revenue / Total Impressions) * 1000
+    const blendedEcpm = totalImpressions > 0 
+      ? ((rawRevenue / totalImpressions) * 1000).toFixed(2)
+      : bannerEcpm.toFixed(2);
+
+    // Click-Through Rate (CTR) = (Clicks / Impressions) * 100
+    const ctr = totalImpressions > 0 
+      ? ((totalClicks / totalImpressions) * 100).toFixed(2)
+      : '0.00';
+
+    // Effective Cost Per Click (CPC)
+    const effectiveCpc = totalClicks > 0
+      ? (rawRevenue / totalClicks).toFixed(2)
+      : cpcRate.toFixed(2);
+
+    // Today's revenue calculation
+    const todayBanner = todayStat.banner_impressions || 0;
+    const todayRewarded = todayStat.rewarded_views || 0;
+    const todayClicks = todayStat.clicks || 0;
+    const todayRawRev = (todayBanner * (bannerEcpm / 1000)) + 
+                        (todayRewarded * (rewardedEcpm / 1000)) + 
+                        (todayClicks * cpcRate);
+    const todayRevenue = todayRawRev.toFixed(2);
+
+    // 14-day history array sorted descending
+    const dailyHistory: Array<{
+      date: string;
+      impressions: number;
+      banner_impressions: number;
+      rewarded_views: number;
+      clicks: number;
+      diamonds_distributed: number;
+      estimated_revenue_usd: string;
+      ecpm_usd: string;
+    }> = [];
+
+    const allDates = Object.keys(dailyStats).sort().reverse();
+    if (!allDates.includes(todayKey)) {
+      allDates.unshift(todayKey);
+    }
+
+    for (const d of allDates.slice(0, 14)) {
+      const st = dailyStats[d] || { impressions: 0, banner_impressions: 0, rewarded_views: 0, clicks: 0, diamonds_distributed: 0 };
+      const b = st.banner_impressions || 0;
+      const r = st.rewarded_views || 0;
+      const c = st.clicks || 0;
+      const tot = b + r;
+      const rev = (b * (bannerEcpm / 1000)) + (r * (rewardedEcpm / 1000)) + (c * cpcRate);
+      const ecpm = tot > 0 ? ((rev / tot) * 1000).toFixed(2) : '0.00';
+      dailyHistory.push({
+        date: d,
+        impressions: tot,
+        banner_impressions: b,
+        rewarded_views: r,
+        clicks: c,
+        diamonds_distributed: st.diamonds_distributed || 0,
+        estimated_revenue_usd: rev.toFixed(2),
+        ecpm_usd: ecpm
+      });
+    }
+
+    return {
+      ads_enabled: this.data.monetization.ads_enabled,
+      banner_ads_enabled: this.data.monetization.banner_ads_enabled,
+      rewarded_video_enabled: this.data.monetization.rewarded_video_enabled,
+      use_test_ads: this.data.monetization.use_test_ads,
+      total_impressions: totalImpressions,
+      banner_impressions: bannerImpressions,
+      rewarded_views: rewardedViews,
+      total_clicks: totalClicks,
+      ctr_percent: ctr,
+      total_diamonds_distributed: diamondsDistributed,
+      estimated_revenue_usd: estimatedRevenue,
+      effective_cpm_usd: blendedEcpm,
+      cpc_usd: effectiveCpc,
+      today: {
+        date: todayKey,
+        impressions: todayBanner + todayRewarded,
+        banner_impressions: todayBanner,
+        rewarded_views: todayRewarded,
+        clicks: todayClicks,
+        diamonds_distributed: todayStat.diamonds_distributed || 0,
+        estimated_revenue_usd: todayRevenue
+      },
+      daily_history: dailyHistory,
+      rates: {
+        banner_ecpm_usd: bannerEcpm,
+        rewarded_ecpm_usd: rewardedEcpm,
+        cpc_usd: cpcRate
+      }
+    };
+  }
+
+  public resetMonetizationMetrics(): { success: boolean; message: string } {
+    this.data.stats.ad_impressions = 0;
+    this.data.stats.banner_impressions = 0;
+    this.data.stats.rewarded_ads_watched = 0;
+    this.data.stats.ad_clicks = 0;
+    this.data.stats.diamonds_distributed = 0;
+    this.data.stats.daily_ad_stats = {};
+    this.saveData(this.data);
+    return { success: true, message: 'All ad metrics have been reset successfully.' };
   }
 
   public recordGameCompleted(): void {
@@ -570,6 +806,12 @@ class GameStore {
         banner_ads_enabled: this.data.monetization.banner_ads_enabled,
         interstitial_ads_enabled: this.data.monetization.interstitial_ads_enabled,
         rewarded_video_enabled: this.data.monetization.rewarded_video_enabled,
+        use_test_ads: this.data.monetization.use_test_ads,
+        reward_diamonds_amount: this.data.monetization.reward_diamonds_amount || 5,
+        daily_impression_target: this.data.monetization.daily_impression_target || 10,
+        banner_refresh_seconds: this.data.monetization.banner_refresh_seconds || 30,
+        reward_cooldown_seconds: this.data.monetization.reward_cooldown_seconds || 60,
+        max_daily_rewarded_views: this.data.monetization.max_daily_rewarded_views || 8,
         rewarded_video_coin_reward: this.data.monetization.rewarded_video_coin_reward,
         daily_reward_coins: this.data.monetization.daily_reward_coins,
         win_coin_reward: this.data.monetization.win_coin_reward,
@@ -678,30 +920,36 @@ class GameStore {
   }
 
   // --------------------------------------------------------------------------
-  // TESTER FEEDBACK
+  // TESTER & IN-GAME FEEDBACK
   // --------------------------------------------------------------------------
   public submitTesterFeedback(feedback: {
     name: string;
-    rating: number;
-    category?: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general';
+    rating?: number;
+    category?: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general' | 'suggestion';
     device_model?: string;
     comments: string;
+    source?: 'game' | 'web';
+    platform?: string;
+    app_version?: string;
   }): TesterFeedback {
     const entry: TesterFeedback = {
       id: 'fb_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
       timestamp: Date.now(),
-      name: (feedback.name || 'Anonymous Tester').trim().substring(0, 50),
+      name: (feedback.name || 'Player').trim().substring(0, 50),
       rating: Math.max(1, Math.min(5, Math.round(feedback.rating || 5))),
-      category: feedback.category || 'gameplay',
+      category: feedback.category || 'general',
       device_model: (feedback.device_model || 'Unknown Device').trim().substring(0, 60),
-      comments: (feedback.comments || '').trim().substring(0, 1000),
-      status: 'new'
+      comments: (feedback.comments || '').trim().substring(0, 1500),
+      status: 'new',
+      source: feedback.source || 'game',
+      platform: (feedback.platform || 'Cross-Platform').trim().substring(0, 50),
+      app_version: (feedback.app_version || '1.0.0').trim().substring(0, 20)
     };
 
     this.data.tester_feedbacks.unshift(entry);
-    // Keep last 200 feedback submissions
-    if (this.data.tester_feedbacks.length > 200) {
-      this.data.tester_feedbacks = this.data.tester_feedbacks.slice(0, 200);
+    // Keep last 300 feedback submissions
+    if (this.data.tester_feedbacks.length > 300) {
+      this.data.tester_feedbacks = this.data.tester_feedbacks.slice(0, 300);
     }
     this.saveData(this.data);
     return entry;

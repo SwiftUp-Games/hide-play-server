@@ -36,6 +36,48 @@ export interface MonetizationMetrics {
   estimated_ad_revenue_usd: string;
 }
 
+export interface AdDailyStat {
+  date: string;
+  impressions: number;
+  banner_impressions: number;
+  rewarded_views: number;
+  clicks: number;
+  diamonds_distributed: number;
+  estimated_revenue_usd: string;
+  ecpm_usd: string;
+}
+
+export interface AdMetricsDetailed {
+  ads_enabled: boolean;
+  banner_ads_enabled: boolean;
+  rewarded_video_enabled: boolean;
+  use_test_ads: boolean;
+  total_impressions: number;
+  banner_impressions: number;
+  rewarded_views: number;
+  total_clicks: number;
+  ctr_percent: string;
+  total_diamonds_distributed: number;
+  estimated_revenue_usd: string;
+  effective_cpm_usd: string;
+  cpc_usd: string;
+  today: {
+    date: string;
+    impressions: number;
+    banner_impressions: number;
+    rewarded_views: number;
+    clicks: number;
+    diamonds_distributed: number;
+    estimated_revenue_usd: string;
+  };
+  daily_history: AdDailyStat[];
+  rates: {
+    banner_ecpm_usd: number;
+    rewarded_ecpm_usd: number;
+    cpc_usd: number;
+  };
+}
+
 export interface AnalyticsEvent {
   id: string;
   timestamp: number;
@@ -84,8 +126,17 @@ export interface MonetizationConfig {
   banner_ads_enabled: boolean;
   interstitial_ads_enabled: boolean;
   rewarded_video_enabled: boolean;
+  use_test_ads: boolean;
   interstitial_interval_matches: number;
   rewarded_video_coin_reward: number;
+  reward_diamonds_amount: number;
+  daily_impression_target: number;
+  banner_refresh_seconds: number;
+  reward_cooldown_seconds: number;
+  max_daily_rewarded_views: number;
+  banner_ecpm_usd: number;
+  rewarded_ecpm_usd: number;
+  cpc_usd: number;
   daily_reward_coins: number;
   win_coin_reward: number;
   catch_hider_coin_reward: number;
@@ -111,10 +162,13 @@ export interface TesterFeedback {
   timestamp: number;
   name: string;
   rating: number;
-  category: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general';
+  category: 'gameplay' | 'voice' | 'performance' | 'bugs' | 'general' | 'suggestion';
   device_model: string;
   comments: string;
   status: 'new' | 'reviewed' | 'resolved';
+  source?: 'game' | 'web';
+  platform?: string;
+  app_version?: string;
 }
 
 export interface TesterAnalytics {

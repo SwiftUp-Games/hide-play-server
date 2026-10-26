@@ -24,6 +24,8 @@ export function TestersTab({ onShowToast }: TestersTabProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [analytics, setAnalytics] = useState<TesterAnalytics | null>(null);
   const [feedbacks, setFeedbacks] = useState<TesterFeedback[]>([]);
+  const [filterSource, setFilterSource] = useState<'all' | 'game' | 'web'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'resolved'>('all');
   const [config, setConfig] = useState<DownloadConfig>({
     r2_download_url: '',
     apk_version: 'v1.2.0-beta',
@@ -406,16 +408,63 @@ export function TestersTab({ onShowToast }: TestersTabProps) {
         </form>
       </div>
 
-      {/* Tester Feedback Feed */}
+      {/* Tester & In-Game Feedback Feed */}
       <div className="card" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h3 style={{ fontSize: '17px', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MessageSquare size={18} color="var(--primary-gold)" />
-              <span>Tester Reviews & Feedback ({feedbacks.length})</span>
+              <span>Player & Tester Feedback ({feedbacks.length})</span>
             </h3>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Feedback submitted by players directly from the download webpage.
+              Live feedback submitted by players in the game application and from the download portal.
+            </div>
+          </div>
+
+          {/* Filter Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Source Filter */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '2px' }}>
+              {(['all', 'game', 'web'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFilterSource(s)}
+                  style={{
+                    background: filterSource === s ? 'var(--primary-gold)' : 'transparent',
+                    color: filterSource === s ? '#111' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {s === 'all' ? 'All Sources' : (s === 'game' ? '🎮 In-Game' : '🌐 Web')}
+                </button>
+              ))}
+            </div>
+
+            {/* Status Filter */}
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '2px' }}>
+              {(['all', 'new', 'resolved'] as const).map(st => (
+                <button
+                  key={st}
+                  onClick={() => setFilterStatus(st)}
+                  style={{
+                    background: filterStatus === st ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                    color: filterStatus === st ? '#fff' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {st === 'all' ? 'All' : (st === 'new' ? 'New' : 'Resolved')}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -423,92 +472,124 @@ export function TestersTab({ onShowToast }: TestersTabProps) {
         {feedbacks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
             <Sparkles size={32} style={{ margin: '0 auto 12px', display: 'block', color: 'var(--primary-gold)', opacity: 0.6 }} />
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>No tester reviews yet!</div>
+            <div style={{ fontSize: '14px', fontWeight: 600 }}>No player feedback yet!</div>
             <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '4px' }}>
-              Share your tester link <a href={downloadPageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-gold)' }}>{downloadPageUrl}</a> to collect feedback.
+              Players can submit feedback using the in-game feedback button or from <a href={downloadPageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--primary-gold)' }}>{downloadPageUrl}</a>.
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {feedbacks.map(f => {
-              const dateStr = new Date(f.timestamp).toLocaleDateString() + ' ' + new Date(f.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              return (
-                <div
-                  key={f.id}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '14px',
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontWeight: 700, color: '#fff', fontSize: '14px' }}>{f.name}</span>
-                      
-                      {/* Star rating */}
-                      <div style={{ display: 'flex', color: 'var(--primary-gold)', fontSize: '14px' }}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <span key={i} style={{ opacity: i < f.rating ? 1 : 0.25 }}>★</span>
-                        ))}
+            {feedbacks
+              .filter(f => {
+                if (filterSource === 'game' && f.source !== 'game') return false;
+                if (filterSource === 'web' && f.source === 'game') return false;
+                if (filterStatus === 'new' && f.status === 'resolved') return false;
+                if (filterStatus === 'resolved' && f.status !== 'resolved') return false;
+                return true;
+              })
+              .map(f => {
+                const dateStr = new Date(f.timestamp).toLocaleDateString() + ' ' + new Date(f.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isGame = f.source === 'game';
+                return (
+                  <div
+                    key={f.id}
+                    style={{
+                      background: isGame ? 'rgba(38, 166, 91, 0.07)' : 'rgba(255, 255, 255, 0.03)',
+                      border: isGame ? '1px solid rgba(46, 204, 113, 0.25)' : '1px solid var(--border-subtle)',
+                      borderRadius: '14px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, color: '#fff', fontSize: '14px' }}>{f.name}</span>
+                        
+                        {/* Source Badge */}
+                        {isGame ? (
+                          <span className="badge badge-green" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <span>🎮 In-Game</span>
+                          </span>
+                        ) : (
+                          <span className="badge badge-blue" style={{ fontSize: '10px' }}>
+                            🌐 Web
+                          </span>
+                        )}
+
+                        {/* Star rating */}
+                        <div style={{ display: 'flex', color: 'var(--primary-gold)', fontSize: '14px' }}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <span key={i} style={{ opacity: i < f.rating ? 1 : 0.25 }}>★</span>
+                          ))}
+                        </div>
+
+                        <span className="badge" style={{ fontSize: '10px', textTransform: 'capitalize', background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}>
+                          {f.category}
+                        </span>
+
+                        {f.status === 'resolved' ? (
+                          <span className="badge badge-green" style={{ fontSize: '10px' }}>RESOLVED</span>
+                        ) : (
+                          <span className="badge badge-gold" style={{ fontSize: '10px' }}>NEW</span>
+                        )}
                       </div>
 
-                      <span className="badge badge-blue" style={{ fontSize: '10px', textTransform: 'capitalize' }}>
-                        {f.category}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{dateStr}</span>
+                        
+                        <button
+                          onClick={() => handleToggleStatus(f)}
+                          style={{
+                            background: f.status === 'resolved' ? 'rgba(46, 204, 113, 0.15)' : 'rgba(255, 215, 82, 0.15)',
+                            border: 'none',
+                            color: f.status === 'resolved' ? '#2ecc71' : 'var(--primary-gold)',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '4px 8px',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          {f.status === 'resolved' ? 'Reopen' : '✓ Mark Reviewed'}
+                        </button>
 
-                      {f.status === 'resolved' && (
-                        <span className="badge badge-green" style={{ fontSize: '10px' }}>RESOLVED</span>
+                        <button
+                          onClick={() => handleDeleteFeedback(f.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '4px'
+                          }}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <p style={{ margin: '4px 0', fontSize: '13.5px', color: '#f1f5f9', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                      "{f.comments}"
+                    </p>
+
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', paddingTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Smartphone size={12} />
+                        <span>Device: {f.device_model || 'Unknown'}</span>
+                      </span>
+                      {f.platform && (
+                        <span>• Platform: <strong>{f.platform}</strong></span>
+                      )}
+                      {f.app_version && (
+                        <span>• App: <strong>v{f.app_version}</strong></span>
                       )}
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{dateStr}</span>
-                      
-                      <button
-                        onClick={() => handleToggleStatus(f)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: f.status === 'resolved' ? '#2ecc71' : 'var(--text-muted)',
-                          cursor: 'pointer',
-                          fontSize: '11px',
-                          textDecoration: 'underline'
-                        }}
-                      >
-                        {f.status === 'resolved' ? 'Reopen' : 'Mark Done'}
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteFeedback(f.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: '4px'
-                        }}
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
                   </div>
-
-                  <p style={{ margin: 0, fontSize: '13.5px', color: '#e2e8f0', lineHeight: 1.5 }}>
-                    "{f.comments}"
-                  </p>
-
-                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Smartphone size={12} />
-                    <span>Device: {f.device_model || 'Unknown'}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         )}
       </div>

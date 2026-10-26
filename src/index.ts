@@ -209,6 +209,15 @@ app.post('/api/admin/monetization', requireAdmin, (req, res) => {
   return res.json({ success: true, monetization: updated });
 });
 
+app.get('/api/admin/monetization/metrics', requireAdmin, (_req, res) => {
+  return res.json(gameStore.getMonetizationMetrics());
+});
+
+app.post('/api/admin/monetization/reset-metrics', requireAdmin, (_req, res) => {
+  const result = gameStore.resetMonetizationMetrics();
+  return res.json(result);
+});
+
 app.get('/api/admin/analytics', requireAdmin, (req, res) => {
   const limit = parseInt(req.query.limit as string || '50', 10);
   return res.json({
@@ -239,6 +248,29 @@ app.post('/api/admin/rooms/:code/close', requireAdmin, (req, res) => {
 // ----------------------------------------------------------------------------
 app.get('/api/game/config', (_req, res) => {
   return res.json(gameStore.getPublicClientConfig());
+});
+
+app.get('/api/game/monetization/config', (_req, res) => {
+  const pub = gameStore.getPublicClientConfig();
+  return res.json({
+    success: true,
+    monetization: pub.monetization
+  });
+});
+
+app.post('/api/game/monetization/ad-event', (req, res) => {
+  const { type, player_id, player_name, diamonds_awarded, ad_unit_id } = req.body;
+  if (!type) {
+    return res.status(400).json({ success: false, message: 'Missing ad event type (banner_impression, rewarded_completion, ad_click).' });
+  }
+  const result = gameStore.trackAdEvent({
+    type,
+    player_id,
+    player_name,
+    diamonds_awarded: diamonds_awarded ? Number(diamonds_awarded) : undefined,
+    ad_unit_id
+  });
+  return res.json(result);
 });
 
 app.post('/api/game/player-sync', (req, res) => {
@@ -274,6 +306,11 @@ app.post('/api/game/analytics', (req, res) => {
 // ----------------------------------------------------------------------------
 // Static Assets & Download Landing Page
 // ----------------------------------------------------------------------------
+const publicPath = path.resolve(__dirname, '../public');
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+}
+
 const publicAssetsPath = path.resolve(__dirname, '../public/assets');
 if (fs.existsSync(publicAssetsPath)) {
   app.use('/assets', express.static(publicAssetsPath));
@@ -338,22 +375,34 @@ app.get('/download/apk', (req, res) => {
   return res.status(404).send('APK download link is being updated. Please check back shortly!');
 });
 
-// 5. Submit Tester Feedback
-app.post('/api/download/feedback', (req, res) => {
-  const { name, rating, category, device_model, comments } = req.body;
-  if (!comments || comments.trim().length === 0) {
+// 5. Submit In-Game & Tester Feedback
+app.post(['/api/game/feedback', '/api/download/feedback'], (req, res) => {
+  const { name, rating, category, device_model, comments, feedback, source, platform, app_version } = req.body;
+  const feedbackText = (comments || feedback || '').trim();
+  if (!feedbackText || feedbackText.length === 0) {
     return res.status(400).json({ success: false, message: 'Please provide your valuable feedback comments.' });
   }
 
-  const feedback = gameStore.submitTesterFeedback({
-    name: name || 'Anonymous Tester',
+  const isGame = source === 'game' || req.path.includes('/game/');
+  const clientName = (name || (isGame ? 'Player' : 'Anonymous Tester')).trim();
+  const clientDevice = device_model || req.headers['user-agent']?.substring(0, 60) || (isGame ? 'In-Game Client' : 'Web Browser');
+
+  const entry = gameStore.submitTesterFeedback({
+    name: clientName,
     rating: Number(rating) || 5,
-    category,
-    device_model: device_model || req.headers['user-agent']?.substring(0, 50) || 'Android Device',
-    comments
+    category: category || (isGame ? 'gameplay' : 'general'),
+    device_model: clientDevice,
+    comments: feedbackText,
+    source: isGame ? 'game' : 'web',
+    platform: platform || (isGame ? 'In-Game App' : 'Web Download Page'),
+    app_version: app_version || '1.0.0'
   });
 
-  return res.json({ success: true, message: 'Thank you for your valuable feedback!', feedback });
+  return res.json({ 
+    success: true, 
+    message: 'Thank you for your valuable feedback! We appreciate your support.', 
+    feedback: entry 
+  });
 });
 
 // 6. Admin Tester Analytics & Config endpoints
@@ -529,6 +578,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       safeSend(ws, { 
         type: 'PONG', 
         time: Date.now(),
+        client_time: msg.client_time,
         online_players: stats.online_players,
         active_rooms: stats.active_rooms,
         region: stats.region
@@ -751,7 +801,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 }
 
 // ----------------------------------------------------------------------------
-// Binary High-Speed Relay
+// Binary High-Speed Relay (Game & Real-Time Voice Audio)
 // ----------------------------------------------------------------------------
 function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
   const mapping = clientToRoom.get(ws);
@@ -759,11 +809,31 @@ function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
   const room = rooms.get(mapping.roomCode);
   if (!room) return;
 
+  // 0x56 = 'V' for VOICE_AUDIO packet
+  if (buffer.length >= 5 && buffer[0] === 0x56) {
+    // Stamp authoritative sender peerId in bytes 1-2 (Little-Endian matching GDScript decode_u16)
+    buffer.writeUInt16LE(mapping.peerId, 1);
+    const targetPeerId = buffer.readUInt16LE(3);
+
+    // If a specific target peer is requested (> 0), deliver unicast
+    if (targetPeerId > 0) {
+      const dest = room.players.get(targetPeerId);
+      if (dest && dest.ws !== ws && dest.ws.readyState === WebSocket.OPEN) {
+        try {
+          dest.ws.send(buffer, { binary: true });
+        } catch (err) {
+          // ignore send error on closing socket
+        }
+      }
+      return;
+    }
+  }
+
   // Broadcast binary packet to all other peers in room
   for (const [, p] of room.players) {
     if (p.ws !== ws && p.ws.readyState === WebSocket.OPEN) {
       try {
-        p.ws.send(buffer);
+        p.ws.send(buffer, { binary: true });
       } catch (err) {
         // ignore send error on closing socket
       }
@@ -961,8 +1031,17 @@ function triggerAutoStartCountdown(room: Room) {
       room.countdownTimer = undefined;
       room.status = 'in_game';
 
-      // Pick authoritative Finder from connected peers
+      // Pick authoritative Finder uniformly from all players and configured bots
       const pids = Array.from(room.players.keys());
+      let botsCount = 0;
+      if (room.mode === 'quick_match') {
+        botsCount = Math.max(0, room.maxPlayers - room.players.size);
+      } else {
+        botsCount = Math.max(0, room.settings.bot_count || 0);
+      }
+      for (let b = 0; b < botsCount; b++) {
+        pids.push(101 + b);
+      }
       const chosenFinderId = pids[Math.floor(Math.random() * pids.length)];
 
       broadcastToRoom(room, {

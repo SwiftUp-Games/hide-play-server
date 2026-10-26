@@ -1,4 +1,4 @@
-import type { DashboardData, PlayerAccount, PricingCatalog, MonetizationConfig, DownloadConfig, TesterFeedback, TesterAnalytics } from './types';
+import type { DashboardData, PlayerAccount, PricingCatalog, MonetizationConfig, DownloadConfig, TesterFeedback, TesterAnalytics, AdMetricsDetailed } from './types';
 
 // In production, endpoints are relative to the current host (same server). In dev, points to localhost:8080.
 const API_BASE = window.location.port === '5173' ? 'http://localhost:8080' : '';
@@ -143,6 +143,16 @@ export const adminApi = {
     return request('/api/admin/monetization', {
       method: 'POST',
       body: JSON.stringify(config)
+    });
+  },
+
+  async getMonetizationMetrics(): Promise<AdMetricsDetailed> {
+    return request<AdMetricsDetailed>('/api/admin/monetization/metrics');
+  },
+
+  async resetMonetizationMetrics(): Promise<{ success: boolean; message: string }> {
+    return request('/api/admin/monetization/reset-metrics', {
+      method: 'POST'
     });
   },
 

@@ -119,6 +119,58 @@
   },
   "tester_feedbacks": [
     {
+      "id": "fb_cqjblhfmvpdinkm",
+      "timestamp": 1793026222294,
+      "name": "Integration Tester",
+      "rating": 5,
+      "category": "suggestion",
+      "device_model": "Mac17,3",
+      "comments": "Automated test submission from Godot headless suite! Kerala style UI looks great.",
+      "status": "new",
+      "source": "game",
+      "platform": "macOS",
+      "app_version": "1.0.0"
+    },
+    {
+      "id": "fb_pej0u51mvpdi61i",
+      "timestamp": 1793026199574,
+      "name": "Integration Tester",
+      "rating": 5,
+      "category": "suggestion",
+      "device_model": "Mac17,3",
+      "comments": "Automated test submission from Godot headless suite! Kerala style UI looks great.",
+      "status": "new",
+      "source": "game",
+      "platform": "macOS",
+      "app_version": "1.0.0"
+    },
+    {
+      "id": "fb_coosyckmvpdhnk9",
+      "timestamp": 1793026175625,
+      "name": "Integration Tester",
+      "rating": 5,
+      "category": "suggestion",
+      "device_model": "Mac17,3",
+      "comments": "Automated test submission from Godot headless suite! Kerala style UI looks great.",
+      "status": "new",
+      "source": "game",
+      "platform": "macOS",
+      "app_version": "1.0.0"
+    },
+    {
+      "id": "fb_g90f7k5mvpd6olc",
+      "timestamp": 1793025663744,
+      "name": "Tester Kuttan",
+      "rating": 5,
+      "category": "gameplay",
+      "device_model": "Pixel 8 Pro",
+      "comments": "The game is amazing! Real-time voice and hiding mechanics are fantastic.",
+      "status": "new",
+      "source": "game",
+      "platform": "Android",
+      "app_version": "1.0.0"
+    },
+    {
       "id": "fb_j7654bzmvmfhbsm",
       "timestamp": 1792848121078,
       "name": "Sanjay Menon",

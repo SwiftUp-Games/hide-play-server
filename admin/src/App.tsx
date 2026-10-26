@@ -14,7 +14,7 @@ import {
   Tag, 
   Tv, 
   Shield, 
-  DownloadCloud,
+  MessageSquare,
   LogOut, 
   KeyRound, 
   CheckCircle, 
@@ -202,7 +202,7 @@ export function App() {
         }}>
           {[
             { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
-            { id: 'testers', label: 'Testers & Downloads', icon: DownloadCloud },
+            { id: 'testers', label: 'Feedback & Testers', icon: MessageSquare },
             { id: 'players', label: 'Players & Accounts', icon: Users },
             { id: 'pricing', label: 'Shop & Pricing', icon: Tag },
             { id: 'monetization', label: 'Monetization & Ads', icon: Tv },

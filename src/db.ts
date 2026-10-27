@@ -39,8 +39,9 @@ class DatabaseManager {
     try {
       console.log(`[Database] Connecting to MongoDB (${dbName})...`);
       this.client = new MongoClient(uri, {
-        serverSelectionTimeoutMS: 5000,
-        connectTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 15000,
+        tls: true
       });
 
       await this.client.connect();

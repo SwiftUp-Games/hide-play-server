@@ -12,11 +12,13 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 20.18.0
       - key: PORT
         value: 10000
       - key: ADMIN_SECRET
         value: kerala-dev-admin-secret-2025
       - key: MONGODB_URI
-        value: mongodb+srv://infoshibily_db_user:idhyYBFkxQrzSdkp@cluster0.e44o02s.mongodb.net
+        value: mongodb+srv://infoshibily_db_user:idhyYBFkxQrzSdkp@cluster0.e44o02s.mongodb.net/?retryWrites=true&w=majority
       - key: MONGODB_DB_NAME
         value: Cluster0

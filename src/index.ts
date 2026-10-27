@@ -10,12 +10,14 @@ import { gameStore } from './store';
 // ============================================================================
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
-const MAX_PLAYERS_PER_ROOM = 6;
+const MAX_PLAYERS_PER_ROOM = 20;
+const MAX_BOTS = 4;
 const MATCHMAKING_WAIT_SECONDS = 20;
 const COUNTDOWN_SECONDS = 3;
 
 interface Player {
   peerId: number;
+  sessionToken?: string;
   name: string;
   avatar: string;
   hat: string;
@@ -23,6 +25,8 @@ interface Player {
   isHost: boolean;
   isReady: boolean;
   isMuted: boolean;
+  isAway?: boolean;
+  disconnectedAt?: number;
   ws: WebSocket;
   joinedAt: number;
 }
@@ -48,17 +52,23 @@ interface Room {
   matchmakingTimer?: NodeJS.Timeout;
   matchmakingSecondsLeft: number;
   countdownTimer?: NodeJS.Timeout;
+  disconnectGraceTimer?: NodeJS.Timeout;
 }
 
 const rooms = new Map<string, Room>();
 const clientToRoom = new Map<WebSocket, { roomCode: string; peerId: number }>();
 
-// Strictly 4-digit room code generator (OTP format: 1000 - 9999)
+// Strictly 4-digit room code generator (OTP format: 1000 - 9999) with collision guard
 function generateRoomCode(): string {
   let code = '';
+  let attempts = 0;
   do {
-    // Strictly 4-digit number (1000 to 9999)
     code = Math.floor(1000 + Math.random() * 9000).toString();
+    attempts++;
+    if (attempts > 5000) {
+      code = Math.floor(10000 + Math.random() * 90000).toString();
+      break;
+    }
   } while (rooms.has(code));
   return code;
 }
@@ -651,7 +661,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
     // 3. JOIN ROOM (By Strictly 4-digit OTP Code)
     case 'JOIN_ROOM': {
-      leaveCurrentRoom(ws);
+      leaveCurrentRoom(ws, false);
       const rawCode = (msg.code || '').toString().trim();
       let code = rawCode.replace(/[^0-9]/g, '').slice(0, 4);
       let targetRoom = rooms.get(code);
@@ -671,22 +681,103 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         safeSend(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: `Room ${code || rawCode} was not found.` });
         return;
       }
+
+      // If room had a disconnect grace timer active, cancel it immediately since a new live player joined!
+      if (targetRoom.disconnectGraceTimer) {
+        clearTimeout(targetRoom.disconnectGraceTimer);
+        targetRoom.disconnectGraceTimer = undefined;
+        console.log(`[Room Grace Cancelled] Player joining room ${code}.`);
+      }
+
       if (targetRoom.status !== 'lobby') {
         safeSend(ws, { type: 'ERROR', code: 'GAME_IN_PROGRESS', message: `Room ${code} is already in game.` });
         return;
       }
       if (targetRoom.players.size >= targetRoom.maxPlayers) {
-        safeSend(ws, { type: 'ERROR', code: 'ROOM_FULL', message: `Room ${code} is full (max 6 players).` });
+        safeSend(ws, { type: 'ERROR', code: 'ROOM_FULL', message: `Room ${code} is full (max 20 players).` });
         return;
       }
 
-      joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress);
+      joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress, msg.session_token);
       break;
     }
 
-    // 4. LEAVE ROOM
+    // 3b. RECONNECT ROOM (Seamless resumption after app was backgrounded / swiped up)
+    case 'RECONNECT_ROOM': {
+      leaveCurrentRoom(ws, false);
+      const rawCode = (msg.code || '').toString().trim();
+      let code = rawCode.replace(/[^0-9]/g, '').slice(0, 4);
+      let targetRoom = rooms.get(code);
+
+      if (!targetRoom && code.length === 4) {
+        for (const [rCode, r] of rooms) {
+          if (rCode === code || rCode.replace(/[^0-9]/g, '') === code) {
+            targetRoom = r;
+            code = rCode;
+            break;
+          }
+        }
+      }
+
+      if (!targetRoom) {
+        safeSend(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: `Room ${code || rawCode} was not found.` });
+        return;
+      }
+
+      if (targetRoom.disconnectGraceTimer) {
+        clearTimeout(targetRoom.disconnectGraceTimer);
+        targetRoom.disconnectGraceTimer = undefined;
+        console.log(`[Room Grace Cancelled] Player reconnected to room ${code}.`);
+      }
+
+      const reqPeerId = Number(msg.peer_id || msg.peerId || 0);
+      const sessionToken = msg.session_token || msg.sessionToken;
+      let matchedPlayer: Player | undefined;
+
+      for (const p of targetRoom.players.values()) {
+        if (sessionToken && p.sessionToken && p.sessionToken === sessionToken) {
+          matchedPlayer = p;
+          break;
+        }
+      }
+      if (!matchedPlayer && reqPeerId > 0 && targetRoom.players.has(reqPeerId)) {
+        matchedPlayer = targetRoom.players.get(reqPeerId);
+      }
+      if (!matchedPlayer && (msg.is_host === true || targetRoom.players.size === 1)) {
+        matchedPlayer = targetRoom.players.get(targetRoom.hostPeerId);
+      }
+
+      if (matchedPlayer) {
+        matchedPlayer.ws = ws;
+        matchedPlayer.isAway = false;
+        matchedPlayer.disconnectedAt = undefined;
+        if (msg.player_name) matchedPlayer.name = msg.player_name;
+        if (msg.avatar) matchedPlayer.avatar = msg.avatar;
+        if (msg.hat) matchedPlayer.hat = msg.hat;
+        if (msg.dress) matchedPlayer.dress = msg.dress;
+
+        clientToRoom.set(ws, { roomCode: targetRoom.code, peerId: matchedPlayer.peerId });
+
+        safeSend(ws, {
+          type: 'ROOM_RECONNECTED',
+          code: targetRoom.code,
+          peer_id: matchedPlayer.peerId,
+          peerId: matchedPlayer.peerId,
+          is_host: matchedPlayer.isHost,
+          settings: targetRoom.settings
+        });
+
+        broadcastLobbyState(targetRoom);
+        console.log(`[Player Reconnected] ${matchedPlayer.name} (Peer ${matchedPlayer.peerId}) rejoined room ${targetRoom.code}`);
+      } else {
+        joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress, sessionToken);
+      }
+      break;
+    }
+
+    // 4. LEAVE ROOM (Explicit user action)
     case 'LEAVE_ROOM': {
-      leaveCurrentRoom(ws);
+      leaveCurrentRoom(ws, true);
       safeSend(ws, { type: 'LEFT_ROOM' });
       break;
     }
@@ -700,6 +791,8 @@ function handleClientMessage(ws: WebSocket, msg: any) {
             type: 'SETTINGS_UPDATED',
             settings: currentRoom.settings
           });
+          broadcastLobbyState(currentRoom);
+          console.log(`[Settings Updated] Room ${currentRoom.code} settings:`, currentRoom.settings);
         }
       }
       break;
@@ -723,8 +816,8 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         stopRoomTimers(currentRoom);
         currentRoom.status = 'countdown';
 
-        // Custom room bot check: only add bots if host explicitly configured them in settings
-        const customBots = Math.max(0, currentRoom.settings.bot_count || 0);
+        // Custom room bot check: only add bots if host explicitly configured them in settings (capped at MAX_BOTS)
+        const customBots = Math.min(MAX_BOTS, Math.max(0, currentRoom.settings.bot_count || 0));
         if (customBots > 0) {
           console.log(`[Custom Room] Room ${currentRoom.code} host configured ${customBots} bots.`);
           broadcastToRoom(currentRoom, {
@@ -804,40 +897,44 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 // Binary High-Speed Relay (Game & Real-Time Voice Audio)
 // ----------------------------------------------------------------------------
 function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
-  const mapping = clientToRoom.get(ws);
-  if (!mapping) return;
-  const room = rooms.get(mapping.roomCode);
-  if (!room) return;
+  try {
+    const mapping = clientToRoom.get(ws);
+    if (!mapping) return;
+    const room = rooms.get(mapping.roomCode);
+    if (!room) return;
 
-  // 0x56 = 'V' for VOICE_AUDIO packet
-  if (buffer.length >= 5 && buffer[0] === 0x56) {
-    // Stamp authoritative sender peerId in bytes 1-2 (Little-Endian matching GDScript decode_u16)
-    buffer.writeUInt16LE(mapping.peerId, 1);
-    const targetPeerId = buffer.readUInt16LE(3);
+    // 0x56 = 'V' for VOICE_AUDIO packet
+    if (buffer.length >= 5 && buffer[0] === 0x56) {
+      // Stamp authoritative sender peerId in bytes 1-2 (Little-Endian matching GDScript decode_u16)
+      buffer.writeUInt16LE(mapping.peerId, 1);
+      const targetPeerId = buffer.readUInt16LE(3);
 
-    // If a specific target peer is requested (> 0), deliver unicast
-    if (targetPeerId > 0) {
-      const dest = room.players.get(targetPeerId);
-      if (dest && dest.ws !== ws && dest.ws.readyState === WebSocket.OPEN) {
+      // If a specific target peer is requested (> 0), deliver unicast
+      if (targetPeerId > 0) {
+        const dest = room.players.get(targetPeerId);
+        if (dest && dest.ws !== ws && dest.ws.readyState === WebSocket.OPEN) {
+          try {
+            dest.ws.send(buffer, { binary: true });
+          } catch (err) {
+            // ignore send error on closing socket
+          }
+        }
+        return;
+      }
+    }
+
+    // Broadcast binary packet strictly to all other peers in the same room
+    for (const [, p] of room.players) {
+      if (p.ws !== ws && p.ws && p.ws.readyState === WebSocket.OPEN) {
         try {
-          dest.ws.send(buffer, { binary: true });
+          p.ws.send(buffer, { binary: true });
         } catch (err) {
           // ignore send error on closing socket
         }
       }
-      return;
     }
-  }
-
-  // Broadcast binary packet to all other peers in room
-  for (const [, p] of room.players) {
-    if (p.ws !== ws && p.ws.readyState === WebSocket.OPEN) {
-      try {
-        p.ws.send(buffer, { binary: true });
-      } catch (err) {
-        // ignore send error on closing socket
-      }
-    }
+  } catch (err) {
+    console.warn('[handleBinaryRelay] Error handling packet:', err);
   }
 }
 
@@ -854,6 +951,7 @@ function createRoomInternal(
     hat?: string;
     dress?: string;
     settings?: Partial<RoomSettings>;
+    session_token?: string;
   }
 ): Room {
   const code = generateRoomCode();
@@ -870,6 +968,7 @@ function createRoomInternal(
 
   const hostPlayer: Player = {
     peerId: hostPeerId,
+    sessionToken: opts.session_token,
     name: opts.player_name || 'Host',
     avatar: opts.avatar || 'boy_default',
     hat: opts.hat || 'hat_none',
@@ -877,6 +976,7 @@ function createRoomInternal(
     isHost: true,
     isReady: true,
     isMuted: false,
+    isAway: false,
     ws,
     joinedAt: Date.now()
   };
@@ -925,11 +1025,13 @@ function joinRoomInternal(
   name: string,
   avatar?: string,
   hat?: string,
-  dress?: string
+  dress?: string,
+  sessionToken?: string
 ) {
   const peerId = room.nextPeerId++;
   const player: Player = {
     peerId,
+    sessionToken,
     name: name || `Player_${peerId}`,
     avatar: avatar || 'boy_default',
     hat: hat || 'hat_none',
@@ -937,6 +1039,7 @@ function joinRoomInternal(
     isHost: false,
     isReady: false,
     isMuted: false,
+    isAway: false,
     ws,
     joinedAt: Date.now()
   };
@@ -993,17 +1096,18 @@ function startMatchmakingTimer(room: Room) {
       room.matchmakingTimer = undefined;
 
       // 20 Seconds Elapsed in Quick Match:
-      // Even with 2 players, launch the game!
+      // Even with 2 players, launch the game! Strictly limit bots to MAX_BOTS (4)
       const humanCount = room.players.size;
-      const missingBots = Math.max(0, room.maxPlayers - humanCount);
-      console.log(`[Matchmaking 20s Elapsed] Room ${room.code} starting with ${humanCount} human players. Auto-filling ${missingBots} bots.`);
+      const missingBots = Math.min(MAX_BOTS, Math.max(0, 5 - humanCount));
+      const totalParticipants = humanCount + missingBots;
+      console.log(`[Matchmaking 20s Elapsed] Room ${room.code} starting with ${humanCount} human players. Auto-filling ${missingBots} bots (Total: ${totalParticipants}).`);
 
       room.status = 'countdown';
       if (missingBots > 0) {
         broadcastToRoom(room, {
           type: 'MATCHMAKING_AUTO_FILL',
           bots_needed: missingBots,
-          total_players: room.maxPlayers
+          total_players: totalParticipants
         });
       }
 
@@ -1031,13 +1135,13 @@ function triggerAutoStartCountdown(room: Room) {
       room.countdownTimer = undefined;
       room.status = 'in_game';
 
-      // Pick authoritative Finder uniformly from all players and configured bots
+      // Pick authoritative Finder uniformly from all players and configured bots (capped at MAX_BOTS = 4)
       const pids = Array.from(room.players.keys());
       let botsCount = 0;
       if (room.mode === 'quick_match') {
-        botsCount = Math.max(0, room.maxPlayers - room.players.size);
+        botsCount = Math.min(MAX_BOTS, Math.max(0, 5 - room.players.size));
       } else {
-        botsCount = Math.max(0, room.settings.bot_count || 0);
+        botsCount = Math.min(MAX_BOTS, Math.max(0, room.settings.bot_count || 0));
       }
       for (let b = 0; b < botsCount; b++) {
         pids.push(101 + b);
@@ -1075,10 +1179,14 @@ function stopRoomTimers(room: Room) {
     clearInterval(room.countdownTimer);
     room.countdownTimer = undefined;
   }
+  if (room.disconnectGraceTimer) {
+    clearTimeout(room.disconnectGraceTimer);
+    room.disconnectGraceTimer = undefined;
+  }
 }
 
 // ----------------------------------------------------------------------------
-// Lobby State & Disconnect Handling
+// Lobby State & Disconnect Handling (With Background Resilience Grace Period)
 // ----------------------------------------------------------------------------
 function broadcastLobbyState(room: Room) {
   const pList = Array.from(room.players.values()).map(p => ({
@@ -1089,7 +1197,8 @@ function broadcastLobbyState(room: Room) {
     dress: p.dress,
     is_host: p.isHost,
     is_ready: p.isReady,
-    is_muted: p.isMuted
+    is_muted: p.isMuted,
+    is_away: !!p.isAway
   }));
 
   broadcastToRoom(room, {
@@ -1104,7 +1213,7 @@ function broadcastLobbyState(room: Room) {
   });
 }
 
-function leaveCurrentRoom(ws: WebSocket) {
+function leaveCurrentRoom(ws: WebSocket, isExplicitLeave: boolean = false) {
   const mapping = clientToRoom.get(ws);
   if (!mapping) return;
 
@@ -1114,30 +1223,75 @@ function leaveCurrentRoom(ws: WebSocket) {
   if (!room) return;
 
   const player = room.players.get(peerId);
-  room.players.delete(peerId);
-  console.log(`[Player Left] ${player ? player.name : `Peer ${peerId}`} left room ${roomCode}`);
+  if (!player) return;
 
-  if (room.players.size === 0) {
-    stopRoomTimers(room);
-    rooms.delete(roomCode);
-    console.log(`[Room Destroyed] Room ${roomCode} is now empty.`);
+  if (isExplicitLeave) {
+    // Explicit player departure: remove from room roster
+    room.players.delete(peerId);
+    console.log(`[Player Left Explicitly] ${player.name} (Peer ${peerId}) left room ${roomCode}`);
+
+    if (room.players.size === 0) {
+      stopRoomTimers(room);
+      rooms.delete(roomCode);
+      console.log(`[Room Destroyed] Room ${roomCode} is now empty.`);
+    } else {
+      // If the host left, migrate host authority to the oldest remaining player
+      if (peerId === room.hostPeerId) {
+        const nextHost = room.players.values().next().value;
+        if (nextHost) {
+          nextHost.isHost = true;
+          nextHost.isReady = true;
+          room.hostPeerId = nextHost.peerId;
+          console.log(`[Host Migrated] Peer ${nextHost.peerId} (${nextHost.name}) is now host of ${roomCode}`);
+        }
+      }
+      broadcastLobbyState(room);
+    }
   } else {
-    // If the host left, migrate host authority to the oldest remaining player
-    if (peerId === room.hostPeerId) {
-      const nextHost = room.players.values().next().value;
-      if (nextHost) {
-        nextHost.isHost = true;
-        nextHost.isReady = true;
-        room.hostPeerId = nextHost.peerId;
-        console.log(`[Host Migrated] Peer ${nextHost.peerId} (${nextHost.name}) is now host of ${roomCode}`);
+    // Unexpected socket disconnection (e.g. user swiped up to WhatsApp, locked phone, network blip)
+    player.isAway = true;
+    player.disconnectedAt = Date.now();
+    player.ws = null as any;
+    console.log(`[Player Background/Offline] ${player.name} (Peer ${peerId}) disconnected from room ${roomCode}. Preserving room.`);
+
+    // Check if any players in the room still have an open WebSocket
+    let activeSockets = 0;
+    for (const p of room.players.values()) {
+      if (p.ws && p.ws.readyState === WebSocket.OPEN && !p.isAway) {
+        activeSockets++;
       }
     }
-    broadcastLobbyState(room);
+
+    if (activeSockets > 0) {
+      broadcastLobbyState(room);
+    } else {
+      // All players in room are temporarily away: start a 5-minute (300s) grace timer!
+      if (!room.disconnectGraceTimer) {
+        console.log(`[Room Grace Period Started] Room ${roomCode} waiting 5 minutes for players to return before closing.`);
+        room.disconnectGraceTimer = setTimeout(() => {
+          const r = rooms.get(roomCode);
+          if (r && r === room) {
+            let hasLive = false;
+            for (const p of r.players.values()) {
+              if (p.ws && p.ws.readyState === WebSocket.OPEN && !p.isAway) {
+                hasLive = true;
+                break;
+              }
+            }
+            if (!hasLive) {
+              console.log(`[Room Grace Expired] Destroying abandoned room ${roomCode}.`);
+              stopRoomTimers(r);
+              rooms.delete(roomCode);
+            }
+          }
+        }, 5 * 60 * 1000);
+      }
+    }
   }
 }
 
 function handleDisconnect(ws: WebSocket) {
-  leaveCurrentRoom(ws);
+  leaveCurrentRoom(ws, false);
 }
 
 function broadcastToRoom(room: Room, data: any) {

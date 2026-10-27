@@ -96,7 +96,7 @@
     "page_views": 13,
     "unique_visitors": 1,
     "download_clicks": 3,
-    "game_opens": 1,
+    "game_opens": 3,
     "visitor_devices": {
       "Android": 1,
       "iOS": 0,
@@ -114,10 +114,28 @@
         "views": 0,
         "downloads": 0,
         "game_opens": 1
+      },
+      "2026-10-27": {
+        "views": 0,
+        "downloads": 0,
+        "game_opens": 2
       }
     }
   },
   "tester_feedbacks": [
+    {
+      "id": "fb_miulun7mvpz58op",
+      "timestamp": 1793062548025,
+      "name": "Integration Tester",
+      "rating": 5,
+      "category": "suggestion",
+      "device_model": "Mac17,3",
+      "comments": "Automated test submission from Godot headless suite! Kerala style UI looks great.",
+      "status": "new",
+      "source": "game",
+      "platform": "macOS",
+      "app_version": "1.0.0"
+    },
     {
       "id": "fb_cqjblhfmvpdinkm",
       "timestamp": 1793026222294,
@@ -202,6 +220,30 @@
     }
   },
   "analytics_events": [
+    {
+      "id": "evt_0ip1sl2mvq5tt11",
+      "timestamp": 1793073771829,
+      "player_id": "1",
+      "player_name": "TestHost",
+      "event_name": "PLAYER_JOIN",
+      "metadata": {
+        "room_code": "2332",
+        "action": "room_created",
+        "mode": "custom"
+      }
+    },
+    {
+      "id": "evt_evb7sd2mvq4tp2s",
+      "timestamp": 1793072087092,
+      "player_id": "1",
+      "player_name": "OTPTestHost",
+      "event_name": "PLAYER_JOIN",
+      "metadata": {
+        "room_code": "3266",
+        "action": "room_created",
+        "mode": "custom"
+      }
+    },
     {
       "id": "evt_ykx98w0mvnv88g2",
       "timestamp": 1792935036866,
@@ -2526,28 +2568,6 @@
     },
     {
       "id": "evt_w0z6f6tmvnv6bor",
-      "timestamp": 1792934947755,
-      "player_id": "test_player_1",
-      "player_name": "KeralaTester",
-      "event_name": "AD_IMPRESSION",
-      "metadata": {
-        "format": "banner",
-        "unit_id": "ca-app-pub-3940256099942544/6300978111"
-      }
-    },
-    {
-      "id": "evt_u8ej4s3mvnv6bor",
-      "timestamp": 1792934947755,
-      "player_id": "test_player_1",
-      "player_name": "KeralaTester",
-      "event_name": "AD_IMPRESSION",
-      "metadata": {
-        "format": "banner",
-        "unit_id": "ca-app-pub-3940256099942544/6300978111"
-      }
-    },
-    {
-      "id": "evt_d1q4t65mvnv6bor",
       "timestamp": 1792934947755,
       "player_id": "test_player_1",
       "player_name": "KeralaTester",

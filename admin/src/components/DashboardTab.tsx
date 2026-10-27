@@ -13,7 +13,10 @@ import {
   ShoppingBag,
   Trophy,
   PlayCircle,
-  UserPlus
+  UserPlus,
+  UserCheck,
+  DownloadCloud,
+  ExternalLink
 } from 'lucide-react';
 
 interface Props {
@@ -67,6 +70,12 @@ export const DashboardTab: React.FC<Props> = ({ data, loading, onRefresh, showTo
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {live.database && (
+            <div className={`badge ${live.database.connected ? 'badge-green' : 'badge-gold'}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '12px' }}>🍃</span>
+              <span>{live.database.connected ? `MongoDB Atlas: ${live.database.db_name}` : 'Local File Store'}</span>
+            </div>
+          )}
           <div className="badge badge-green">
             <span className="live-beacon"></span>
             <span>{live.region}</span>
@@ -419,6 +428,26 @@ export const DashboardTab: React.FC<Props> = ({ data, loading, onRefresh, showTo
                 badgeColor = 'badge-gold';
                 eventIcon = <Coins size={14} />;
                 eventLabel = 'COINS';
+              } else if (evt.event_name === 'ONBOARDING_COMPLETED') {
+                badgeColor = 'badge-green';
+                eventIcon = <UserCheck size={14} />;
+                eventLabel = 'ONBOARDED';
+              } else if (evt.event_name === 'ACCOUNT_CREATED') {
+                badgeColor = 'badge-blue';
+                eventIcon = <UserPlus size={14} />;
+                eventLabel = 'NEW ACCOUNT';
+              } else if (evt.event_name === 'PROMO_VISIT') {
+                badgeColor = 'badge-blue';
+                eventIcon = <ExternalLink size={14} />;
+                eventLabel = 'PROMO VISIT';
+              } else if (evt.event_name === 'PROMO_DOWNLOAD_CLICK') {
+                badgeColor = 'badge-green';
+                eventIcon = <DownloadCloud size={14} />;
+                eventLabel = 'APK DOWNLOAD';
+              } else if (evt.event_name === 'GAME_LAUNCH') {
+                badgeColor = 'badge-green';
+                eventIcon = <PlayCircle size={14} />;
+                eventLabel = 'APP OPEN';
               }
 
               return (

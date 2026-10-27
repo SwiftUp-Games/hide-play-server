@@ -14,3 +14,9 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: ADMIN_SECRET
+        value: kerala-dev-admin-secret-2025
+      - key: MONGODB_URI
+        value: mongodb+srv://infoshibily_db_user:idhyYBFkxQrzSdkp@cluster0.e44o02s.mongodb.net
+      - key: MONGODB_DB_NAME
+        value: Cluster0

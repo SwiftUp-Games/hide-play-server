@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { adminApi } from '../api';
-import { KeyRound, AlertCircle, ArrowRight, RotateCcw, Sparkles } from 'lucide-react';
+import { KeyRound, AlertCircle, ArrowRight, RotateCcw } from 'lucide-react';
 
 interface Props {
   onLoginSuccess: (code: string) => void;
 }
-
-const MASTER_DEFAULT_CODE = '8606094557';
 
 export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
   const [digits, setDigits] = useState<string[]>(Array(10).fill(''));
@@ -107,13 +105,6 @@ export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
     setDigits(Array(10).fill(''));
     setError(null);
     inputRefs.current[0]?.focus();
-  };
-
-  const handleUseDefault = () => {
-    const chars = MASTER_DEFAULT_CODE.split('');
-    setDigits(chars);
-    setError(null);
-    submitCode(MASTER_DEFAULT_CODE);
   };
 
   return (
@@ -339,35 +330,6 @@ export const LoginModal: React.FC<Props> = ({ onLoginSuccess }) => {
             )}
           </button>
         </form>
-
-        {/* Quick Fill Button */}
-        <div style={{ 
-          marginTop: '22px', 
-          paddingTop: '16px', 
-          borderTop: '1px solid var(--border-subtle)',
-          textAlign: 'center' 
-        }}>
-          <button
-            type="button"
-            onClick={handleUseDefault}
-            style={{
-              background: 'rgba(255, 215, 82, 0.08)',
-              border: '1px solid rgba(255, 215, 82, 0.25)',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              color: 'var(--primary-gold)',
-              fontSize: '12px',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <Sparkles size={14} color="var(--primary-gold)" />
-            <span>Fill Master Code ({MASTER_DEFAULT_CODE})</span>
-          </button>
-        </div>
       </div>
     </div>
   );

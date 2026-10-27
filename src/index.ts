@@ -1,9 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import { gameStore } from './store';
+import { dbManager } from './db';
 
 // ============================================================================
 // HIDE & PLAY — HIGH PERFORMANCE MATCHMAKING, RELAY & WEBRTC SIGNALING SERVER
@@ -127,7 +131,11 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 app.get('/api/admin/me', requireAdmin, (_req, res) => {
-  return res.json({ valid: true });
+  return res.json({ 
+    valid: true,
+    admin_code: gameStore.getAdminCode(),
+    database: dbManager.getStatus()
+  });
 });
 
 app.post('/api/admin/logout', (req, res) => {
@@ -137,9 +145,9 @@ app.post('/api/admin/logout', (req, res) => {
   return res.json({ success: true });
 });
 
-app.post(['/api/admin/change-code', '/api/admin/change-mobile'], requireAdmin, (req, res) => {
+app.post(['/api/admin/change-code', '/api/admin/change-mobile'], requireAdmin, async (req, res) => {
   const code = req.body.code || req.body.new_code || req.body.mobile;
-  const result = gameStore.updateAdminCode(code);
+  const result = await gameStore.updateAdminCode(code);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 });
@@ -147,7 +155,7 @@ app.post(['/api/admin/change-code', '/api/admin/change-mobile'], requireAdmin, (
 // ----------------------------------------------------------------------------
 // Admin Dashboard & Live Stats Routes
 // ----------------------------------------------------------------------------
-app.get('/api/admin/stats', requireAdmin, (_req, res) => {
+app.get('/api/admin/stats', requireAdmin, async (_req, res) => {
   const stats = getOnlineStats();
   const roomsList = Array.from(rooms.values()).map(r => ({
     code: r.code,
@@ -161,61 +169,63 @@ app.get('/api/admin/stats', requireAdmin, (_req, res) => {
     players: Array.from(r.players.values()).map(p => ({ id: p.peerId, name: p.name, avatar: p.avatar }))
   }));
 
-  const data = gameStore.getDashboardOverview(stats.active_rooms, stats.online_players, roomsList);
+  const data = await gameStore.getDashboardOverview(stats.active_rooms, stats.online_players, roomsList);
   return res.json(data);
 });
 
 // ----------------------------------------------------------------------------
 // Admin Player Management Routes
 // ----------------------------------------------------------------------------
-app.get('/api/admin/players', requireAdmin, (_req, res) => {
-  const players = gameStore.getAllPlayers();
+app.get('/api/admin/players', requireAdmin, async (_req, res) => {
+  const players = await gameStore.getAllPlayers();
   return res.json({ players });
 });
 
-app.post('/api/admin/players/:id/coins', requireAdmin, (req, res) => {
+app.post('/api/admin/players/:id/coins', requireAdmin, async (req, res) => {
   const id = String(req.params.id);
   const { amount, mode } = req.body;
-  const result = gameStore.adjustCoins(id, Number(amount) || 0, mode === 'set' ? 'set' : 'add');
+  const result = await gameStore.adjustCoins(id, Number(amount) || 0, mode === 'set' ? 'set' : 'add');
   if (!result.success) return res.status(404).json(result);
   return res.json(result);
 });
 
-app.post('/api/admin/players/:id/unlock', requireAdmin, (req, res) => {
+app.post('/api/admin/players/:id/unlock', requireAdmin, async (req, res) => {
   const id = String(req.params.id);
   const { item_type, item_id } = req.body;
-  const result = gameStore.unlockItem(id, item_type, item_id);
+  const result = await gameStore.unlockItem(id, item_type, item_id);
   if (!result.success) return res.status(404).json(result);
   return res.json(result);
 });
 
-app.delete('/api/admin/players/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/players/:id', requireAdmin, async (req, res) => {
   const id = String(req.params.id);
-  const success = gameStore.deletePlayer(id);
+  const success = await gameStore.deletePlayer(id);
   return res.json({ success });
 });
 
 // ----------------------------------------------------------------------------
 // Admin Pricing Management Routes
 // ----------------------------------------------------------------------------
-app.get('/api/admin/pricing', requireAdmin, (_req, res) => {
-  return res.json(gameStore.getPricing());
+app.get('/api/admin/pricing', requireAdmin, async (_req, res) => {
+  const pricing = await gameStore.getPricing();
+  return res.json(pricing);
 });
 
-app.post('/api/admin/pricing', requireAdmin, (req, res) => {
-  const updated = gameStore.updatePricing(req.body);
+app.post('/api/admin/pricing', requireAdmin, async (req, res) => {
+  const updated = await gameStore.updatePricing(req.body);
   return res.json({ success: true, pricing: updated });
 });
 
 // ----------------------------------------------------------------------------
 // Admin Monetization & Ads Routes
 // ----------------------------------------------------------------------------
-app.get('/api/admin/monetization', requireAdmin, (_req, res) => {
-  return res.json(gameStore.getMonetization());
+app.get('/api/admin/monetization', requireAdmin, async (_req, res) => {
+  const monetization = await gameStore.getMonetization();
+  return res.json(monetization);
 });
 
-app.post('/api/admin/monetization', requireAdmin, (req, res) => {
-  const updated = gameStore.updateMonetization(req.body);
+app.post('/api/admin/monetization', requireAdmin, async (req, res) => {
+  const updated = await gameStore.updateMonetization(req.body);
   return res.json({ success: true, monetization: updated });
 });
 
@@ -223,16 +233,29 @@ app.get('/api/admin/monetization/metrics', requireAdmin, (_req, res) => {
   return res.json(gameStore.getMonetizationMetrics());
 });
 
-app.post('/api/admin/monetization/reset-metrics', requireAdmin, (_req, res) => {
-  const result = gameStore.resetMonetizationMetrics();
+app.post('/api/admin/monetization/reset-metrics', requireAdmin, async (_req, res) => {
+  const result = await gameStore.resetMonetizationMetrics();
   return res.json(result);
 });
 
-app.get('/api/admin/analytics', requireAdmin, (req, res) => {
+app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
   const limit = parseInt(req.query.limit as string || '50', 10);
+  const events = await gameStore.getRecentAnalyticsEvents(limit);
   return res.json({
-    events: gameStore.getRecentAnalyticsEvents(limit)
+    events
   });
+});
+
+app.get('/api/admin/purchases', requireAdmin, async (req, res) => {
+  const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
+  const purchases = await dbManager.getPurchases(limit);
+  return res.json({ success: true, purchases });
+});
+
+app.get('/api/admin/onboarding', requireAdmin, async (req, res) => {
+  const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
+  const onboardings = await dbManager.getOnboardings(limit);
+  return res.json({ success: true, onboardings });
 });
 
 // ----------------------------------------------------------------------------
@@ -256,12 +279,13 @@ app.post('/api/admin/rooms/:code/close', requireAdmin, (req, res) => {
 // ----------------------------------------------------------------------------
 // Public Game Client Endpoints (Used by Mobile Game Godot Client)
 // ----------------------------------------------------------------------------
-app.get('/api/game/config', (_req, res) => {
-  return res.json(gameStore.getPublicClientConfig());
+app.get('/api/game/config', async (_req, res) => {
+  const config = await gameStore.getPublicClientConfig();
+  return res.json(config);
 });
 
-app.get('/api/game/monetization/config', (_req, res) => {
-  const pub = gameStore.getPublicClientConfig();
+app.get('/api/game/monetization/config', async (_req, res) => {
+  const pub = await gameStore.getPublicClientConfig();
   return res.json({
     success: true,
     monetization: pub.monetization
@@ -283,12 +307,87 @@ app.post('/api/game/monetization/ad-event', (req, res) => {
   return res.json(result);
 });
 
-app.post('/api/game/player-sync', (req, res) => {
+app.post(['/api/player/create', '/api/player/register'], async (req, res) => {
+  const { name, mobile_number, avatar, hat, dress, platform, platform_player_id, master_uuid, device_os } = req.body;
+  const id = master_uuid || platform_player_id || ('ply_' + Math.random().toString(36).substring(2, 9));
+  const player = gameStore.registerOrSyncPlayer({
+    id,
+    master_uuid: id,
+    name: name || 'Player',
+    mobile_number: mobile_number || '',
+    avatar: avatar || 'boy_default',
+    hat: hat || 'hat_none',
+    dress: dress || 'dress_mundu',
+    platform: platform || 'android',
+    platform_player_id: platform_player_id || '',
+    device_os: device_os || ''
+  });
+  
+  await dbManager.recordAnalyticsEvent({
+    id: 'evt_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+    timestamp: Date.now(),
+    player_id: player.id,
+    master_uuid: player.master_uuid,
+    player_name: player.name,
+    event_name: 'ACCOUNT_CREATED',
+    metadata: { platform: player.platform, avatar: player.avatar }
+  });
+
+  const config = await gameStore.getPublicClientConfig();
+  return res.json({ success: true, player, config });
+});
+
+app.post('/api/game/onboarding', async (req, res) => {
+  const { player_id, master_uuid, device_id, id, name, avatar, hat, dress, tutorial_completed, device_model, platform } = req.body;
+  const resolvedId = player_id || master_uuid || device_id || id;
+  if (!resolvedId) {
+    return res.status(400).json({ success: false, message: 'player_id, master_uuid, or device_id required' });
+  }
+
+  const result = await dbManager.recordOnboarding({
+    player_id: resolvedId,
+    master_uuid: master_uuid || resolvedId,
+    name: name || 'Player',
+    avatar,
+    hat,
+    dress,
+    tutorial_completed,
+    device_model,
+    platform
+  });
+
+  return res.json({ success: true, player: result.player, message: 'Onboarding recorded successfully.' });
+});
+
+app.post('/api/game/purchase', async (req, res) => {
+  const { player_id, master_uuid, device_id, id, player_name, item_id, item_type, currency, price, cost, receipt_token, platform } = req.body;
+  if (!item_id) {
+    return res.status(400).json({ success: false, message: 'item_id is required' });
+  }
+
+  const resolvedId = player_id || master_uuid || device_id || id;
+  const result = await dbManager.recordPurchase({
+    player_id: resolvedId,
+    master_uuid: master_uuid || resolvedId,
+    player_name,
+    item_id,
+    item_type: item_type || 'avatar',
+    currency: currency || 'coins',
+    price: Number(price ?? cost) || 0,
+    receipt_token,
+    platform
+  });
+
+  return res.json(result);
+});
+
+app.post('/api/game/player-sync', async (req, res) => {
   const player = gameStore.registerOrSyncPlayer(req.body);
+  const config = await gameStore.getPublicClientConfig();
   return res.json({
     success: true,
     player,
-    config: gameStore.getPublicClientConfig()
+    config
   });
 });
 
@@ -299,7 +398,7 @@ app.post('/api/game/analytics', (req, res) => {
   }
 
   // If player starts game or session, count towards game opens
-  if (event_name === 'GAME_START' || event_name === 'PLAYER_JOIN' || event_name === 'SESSION_START') {
+  if (event_name === 'GAME_START' || event_name === 'PLAYER_JOIN' || event_name === 'SESSION_START' || event_name === 'GAME_LAUNCH') {
     gameStore.trackGameOpen(player_id);
   }
 
@@ -311,6 +410,115 @@ app.post('/api/game/analytics', (req, res) => {
     timestamp: timestamp ? Number(timestamp) : Date.now()
   });
   return res.json({ success: true, event });
+});
+
+// ----------------------------------------------------------------------------
+// Zero-Tap Platform Authentication & Account Linking API
+// ----------------------------------------------------------------------------
+app.post('/api/auth/sync', async (req, res) => {
+  const {
+    master_uuid,
+    platform,
+    platform_player_id,
+    display_name,
+    avatar_uri,
+    auth_token,
+    is_anonymous,
+    app_version,
+    device_os,
+    locale,
+    coins,
+    diamonds,
+    no_ads_purchased,
+    unlocked_avatars,
+    unlocked_hats,
+    unlocked_dresses
+  } = req.body;
+
+  if (!master_uuid) {
+    return res.status(400).json({ success: false, message: 'Missing master_uuid' });
+  }
+
+  const player = gameStore.syncAuthPlayer({
+    master_uuid,
+    platform,
+    platform_player_id,
+    display_name,
+    avatar_uri,
+    auth_token,
+    is_anonymous,
+    app_version,
+    device_os,
+    locale,
+    coins: typeof coins === 'number' ? coins : undefined,
+    diamonds: typeof diamonds === 'number' ? diamonds : undefined,
+    no_ads_purchased: typeof no_ads_purchased === 'boolean' ? no_ads_purchased : undefined,
+    unlocked_avatars: Array.isArray(unlocked_avatars) ? unlocked_avatars : undefined,
+    unlocked_hats: Array.isArray(unlocked_hats) ? unlocked_hats : undefined,
+    unlocked_dresses: Array.isArray(unlocked_dresses) ? unlocked_dresses : undefined
+  });
+
+  const config = await gameStore.getPublicClientConfig();
+  return res.json({
+    success: true,
+    player,
+    config
+  });
+});
+
+// ----------------------------------------------------------------------------
+// Telemetry Event Batch Ingestion API
+// ----------------------------------------------------------------------------
+app.post('/api/telemetry/events', (req, res) => {
+  const events = req.body.events;
+  if (!Array.isArray(events) || events.length === 0) {
+    return res.status(400).json({ success: false, message: 'events array required' });
+  }
+
+  let ingested = 0;
+  for (const evt of events) {
+    if (evt && evt.event_name) {
+      if (evt.event_name === 'SESSION_START' || evt.event_name === 'GAME_START') {
+        gameStore.trackGameOpen(evt.master_uuid || evt.player_id);
+      }
+      gameStore.recordAnalyticsEvent({
+        player_id: evt.master_uuid || evt.player_id,
+        master_uuid: evt.master_uuid,
+        player_name: evt.display_name,
+        session_id: evt.session_id,
+        event_name: evt.event_name,
+        metadata: evt.metadata,
+        timestamp: evt.timestamp ? Number(evt.timestamp) : Date.now()
+      });
+      ingested++;
+    }
+  }
+
+  return res.json({ success: true, count: ingested });
+});
+
+// ----------------------------------------------------------------------------
+// Mobile Store & Regulatory Compliance: Account & Data Deletion API
+// Satisfies Apple Guideline 5.1.1(v) & Google Play Account Deletion Policy
+// ----------------------------------------------------------------------------
+app.all('/api/account/delete', (req, res) => {
+  const master_uuid = req.body.master_uuid || req.query.master_uuid;
+  const platform_player_id = req.body.platform_player_id || req.query.platform_player_id;
+
+  if (!master_uuid && !platform_player_id) {
+    return res.status(400).json({ success: false, message: 'master_uuid or platform_player_id required' });
+  }
+
+  const result = gameStore.deleteUserAccount({
+    master_uuid: master_uuid ? String(master_uuid) : undefined,
+    platform_player_id: platform_player_id ? String(platform_player_id) : undefined
+  });
+
+  return res.json({
+    success: true,
+    deleted: result.deleted_count,
+    message: 'User account, profile, and telemetry purged completely.'
+  });
 });
 
 // ----------------------------------------------------------------------------
@@ -334,14 +542,40 @@ app.get(['/download', '/download/'], (_req, res) => {
   return res.redirect('/download/apk');
 });
 
+// Legal & Google Play / App Store Compliance Routes
+const privacyHtmlPath = path.resolve(__dirname, '../public/privacy.html');
+app.get(['/privacy', '/privacy/', '/privacy-policy', '/privacy-policy.html'], (_req, res) => {
+  if (fs.existsSync(privacyHtmlPath)) {
+    return res.sendFile(privacyHtmlPath);
+  }
+  return res.status(404).send('Privacy policy page not found.');
+});
+
+const termsHtmlPath = path.resolve(__dirname, '../public/terms.html');
+app.get(['/terms', '/terms/', '/terms-of-service', '/terms-and-conditions', '/terms.html'], (_req, res) => {
+  if (fs.existsSync(termsHtmlPath)) {
+    return res.sendFile(termsHtmlPath);
+  }
+  return res.status(404).send('Terms and conditions page not found.');
+});
+
+const dataDeletionHtmlPath = path.resolve(__dirname, '../public/data-deletion.html');
+app.get(['/data-deletion', '/data-deletion/', '/delete-data', '/data-deletion.html'], (_req, res) => {
+  if (fs.existsSync(dataDeletionHtmlPath)) {
+    return res.sendFile(dataDeletionHtmlPath);
+  }
+  return res.status(404).send('Data deletion page not found.');
+});
+
 // ----------------------------------------------------------------------------
 // Tester & Download Program Endpoints
 // ----------------------------------------------------------------------------
 // 1. Get Public Download Config
-app.get('/api/download/config', (_req, res) => {
+app.get('/api/download/config', async (_req, res) => {
+  const config = await gameStore.getDownloadConfig();
   return res.json({
     success: true,
-    config: gameStore.getDownloadConfig(),
+    config,
     stats: {
       online_players: getOnlineStats().online_players
     }
@@ -366,12 +600,12 @@ app.post('/api/download/track-click', (req, res) => {
 });
 
 // 4. Download APK direct route (redirects to R2 or streams local apk)
-app.get('/download/apk', (req, res) => {
+app.get('/download/apk', async (req, res) => {
   const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
   const userAgent = req.headers['user-agent'] || '';
   gameStore.trackDownloadClick(ip, userAgent);
 
-  const config = gameStore.getDownloadConfig();
+  const config = await gameStore.getDownloadConfig();
   if (config.r2_download_url && config.r2_download_url.trim().length > 0) {
     return res.redirect(302, config.r2_download_url.trim());
   }
@@ -416,40 +650,47 @@ app.post(['/api/game/feedback', '/api/download/feedback'], (req, res) => {
 });
 
 // 6. Admin Tester Analytics & Config endpoints
-app.get('/api/admin/testers', requireAdmin, (_req, res) => {
+app.get('/api/admin/testers', requireAdmin, async (_req, res) => {
+  const [feedbacks, config, analytics] = await Promise.all([
+    gameStore.getTesterFeedbacks(100),
+    gameStore.getDownloadConfig(),
+    gameStore.getTesterAnalytics()
+  ]);
   return res.json({
     success: true,
-    analytics: gameStore.getTesterAnalytics(),
-    feedbacks: gameStore.getTesterFeedbacks(100),
-    config: gameStore.getDownloadConfig()
+    analytics,
+    feedbacks,
+    config
   });
 });
 
-app.post('/api/admin/download/config', requireAdmin, (req, res) => {
-  const updated = gameStore.updateDownloadConfig(req.body);
+app.post('/api/admin/download/config', requireAdmin, async (req, res) => {
+  const updated = await gameStore.updateDownloadConfig(req.body);
   return res.json({ success: true, config: updated, message: 'Download configuration updated successfully!' });
 });
 
-app.post('/api/admin/testers/feedback/status', requireAdmin, (req, res) => {
+app.post('/api/admin/testers/feedback/status', requireAdmin, async (req, res) => {
   const { id, status } = req.body;
   if (!id || !status) {
     return res.status(400).json({ success: false, message: 'Missing id or status.' });
   }
-  const ok = gameStore.updateTesterFeedbackStatus(id, status);
+  const ok = await gameStore.updateTesterFeedbackStatus(id, status);
   return res.json({ success: ok });
 });
 
-app.delete('/api/admin/testers/feedback/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/testers/feedback/:id', requireAdmin, async (req, res) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const ok = gameStore.deleteTesterFeedback(id);
+  const ok = await gameStore.deleteTesterFeedback(id);
   return res.json({ success: ok });
 });
 
 app.get('/health', (_req, res) => {
   const stats = getOnlineStats();
+  const dbStatus = dbManager.getStatus();
   return res.json({
     status: 'ok',
     service: 'hide-play-online-relay',
+    database: dbStatus,
     uptime_seconds: Math.floor(process.uptime()),
     active_rooms: stats.active_rooms,
     active_players: stats.real_players,
@@ -459,8 +700,10 @@ app.get('/health', (_req, res) => {
   });
 });
 
-app.get('/rooms', (_req, res) => {
-  return res.json({ rooms: getPublicRoomsSummary() });
+app.get('/rooms', (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.max(1, Math.min(20, Number(req.query.limit) || 6));
+  return res.json(getPublicRoomsPaginated(page, limit));
 });
 
 // ----------------------------------------------------------------------------
@@ -493,25 +736,49 @@ if (fs.existsSync(adminDistPath)) {
 
 const server = http.createServer(app);
 
-function getPublicRoomsSummary() {
+function getPublicRoomsPaginated(page: number = 1, limit: number = 6) {
   const list = [];
   for (const r of rooms.values()) {
-    if (r.mode === 'custom' && r.isPublic && r.status === 'lobby') {
+    if (r.mode === 'custom' && r.isPublic && r.status === 'lobby' && r.players.size < r.maxPlayers) {
       const host = r.players.get(r.hostPeerId);
+      const hostName = host ? host.name : 'Host';
       list.push({
         code: r.code,
-        host_name: host ? host.name : 'Host',
+        name: `${hostName}'s Room`,
+        host_name: hostName,
         host_avatar: host ? host.avatar : 'boy_default',
         map: r.settings.selected_map,
+        players: r.players.size,
         players_count: r.players.size,
         max_players: r.maxPlayers,
         counting_time: r.settings.counting_time,
         hunt_time: r.settings.hunt_time,
+        is_public: true,
         created_at: r.createdAt
       });
     }
   }
-  return list;
+
+  // Sort newest first
+  list.sort((a, b) => b.created_at - a.created_at);
+
+  const total = list.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const validPage = Math.max(1, Math.min(totalPages, page));
+  const startIndex = (validPage - 1) * limit;
+  const pagedRooms = list.slice(startIndex, startIndex + limit);
+
+  return {
+    rooms: pagedRooms,
+    total,
+    page: validPage,
+    limit,
+    totalPages
+  };
+}
+
+function getPublicRoomsSummary() {
+  return getPublicRoomsPaginated(1, 50).rooms;
 }
 
 // ----------------------------------------------------------------------------
@@ -596,9 +863,19 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       break;
     }
 
-    case 'LIST_ROOMS':
-      safeSend(ws, { type: 'ROOM_LIST', rooms: getPublicRoomsSummary() });
+    case 'LIST_ROOMS': {
+      const page = Math.max(1, Number(msg.page) || 1);
+      const limit = Math.max(1, Math.min(20, Number(msg.limit) || 6));
+      const result = getPublicRoomsPaginated(page, limit);
+      safeSend(ws, {
+        type: 'ROOM_LIST',
+        rooms: result.rooms,
+        total: result.total,
+        page: result.page,
+        total_pages: result.totalPages
+      });
       break;
+    }
 
     // 1. QUICK MATCH (Random matchmaking into open quick_match room)
     case 'QUICK_MATCH': {
@@ -642,18 +919,21 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       break;
     }
 
-    // 2. CREATE ROOM (Custom room creation by code)
+    // 2. CREATE ROOM (Custom room creation by code or public listing)
     case 'CREATE_ROOM': {
       leaveCurrentRoom(ws);
-      const isPublic = msg.is_public === true;
+      const isPublic = msg.is_public !== false;
+      const maxPlayers = msg.max_players ? Math.max(2, Math.min(20, Number(msg.max_players))) : (msg.settings?.max_players ? Math.max(2, Math.min(20, Number(msg.settings.max_players))) : 20);
       const newRoom = createRoomInternal(ws, {
         mode: 'custom',
         isPublic,
+        max_players: maxPlayers,
         player_name: msg.player_name || 'Host',
         avatar: msg.avatar,
         hat: msg.hat,
         dress: msg.dress,
-        settings: msg.settings
+        settings: msg.settings,
+        session_token: msg.session_token
       });
       // Custom rooms stay in lobby waiting for friends with NO auto-fill timer
       break;
@@ -946,6 +1226,7 @@ function createRoomInternal(
   opts: {
     mode?: 'quick_match' | 'custom';
     isPublic: boolean;
+    max_players?: number;
     player_name: string;
     avatar?: string;
     hat?: string;
@@ -957,6 +1238,7 @@ function createRoomInternal(
   const code = generateRoomCode();
   const hostPeerId = 1;
   const mode = opts.mode || 'custom';
+  const maxPlayers = opts.max_players ? Math.max(2, Math.min(20, Math.floor(Number(opts.max_players)))) : MAX_PLAYERS_PER_ROOM;
 
   const defaultSettings: RoomSettings = {
     counting_time: 15,
@@ -987,7 +1269,7 @@ function createRoomInternal(
     hostPeerId,
     isPublic: opts.isPublic,
     players: new Map([[hostPeerId, hostPlayer]]),
-    maxPlayers: MAX_PLAYERS_PER_ROOM,
+    maxPlayers,
     status: 'lobby',
     settings: defaultSettings,
     createdAt: Date.now(),
@@ -1756,14 +2038,22 @@ function getDashboardHtml(): string {
 }
 
 // ----------------------------------------------------------------------------
-// Start Server
+// Start Server & Initialize Database
 // ----------------------------------------------------------------------------
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('================================================================');
-  console.log(`🚀 Hide & Play Online Relay Server running on port ${PORT}`);
-  console.log(`📡 WebSocket: ws://0.0.0.0:${PORT}`);
-  console.log(`🩺 Health check: http://0.0.0.0:${PORT}/health`);
-  console.log(`🌐 Public rooms: http://0.0.0.0:${PORT}/rooms`);
-  console.log('================================================================');
-});
+(async () => {
+  try {
+    await gameStore.initDatabase();
+  } catch (err) {
+    console.warn('[Database] Initial connection skipped, continuing with fallback:', err);
+  }
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log('================================================================');
+    console.log(`🚀 Hide & Play Online Relay Server running on port ${PORT}`);
+    console.log(`📡 WebSocket: ws://0.0.0.0:${PORT}`);
+    console.log(`🩺 Health check: http://0.0.0.0:${PORT}/health`);
+    console.log(`🌐 Public rooms: http://0.0.0.0:${PORT}/rooms`);
+    console.log('================================================================');
+  });
+})();
 

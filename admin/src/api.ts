@@ -63,9 +63,9 @@ export const adminApi = {
     return res;
   },
 
-  async verifySession(): Promise<{ valid: boolean; code?: string }> {
+  async verifySession(): Promise<{ valid: boolean; admin_code?: string; database?: { connected: boolean; db_name: string } }> {
     try {
-      const res = await request<{ valid: boolean; code?: string }>('/api/admin/me');
+      const res = await request<{ valid: boolean; admin_code?: string; database?: { connected: boolean; db_name: string } }>('/api/admin/me');
       return res;
     } catch {
       clearSession();
@@ -191,5 +191,14 @@ export const adminApi = {
     return request(`/api/admin/testers/feedback/${id}`, {
       method: 'DELETE'
     });
+  },
+
+  // In-App Purchases & Onboarding Telemetry
+  async getPurchases(limit: number = 50): Promise<{ success: boolean; purchases: any[] }> {
+    return request(`/api/admin/purchases?limit=${limit}`);
+  },
+
+  async getOnboardings(limit: number = 50): Promise<{ success: boolean; onboardings: any[] }> {
+    return request(`/api/admin/onboarding?limit=${limit}`);
   }
 };

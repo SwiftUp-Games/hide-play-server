@@ -161,7 +161,7 @@ export const PlayersTab: React.FC<Props> = ({ showToast }) => {
               letterSpacing: '0.5px'
             }}>
               <th style={{ padding: '14px 16px' }}>Player</th>
-              <th style={{ padding: '14px 16px' }}>Coins 🪙</th>
+              <th style={{ padding: '14px 16px' }}>Balance (🪙 / 💎)</th>
               <th style={{ padding: '14px 16px' }}>Stats</th>
               <th style={{ padding: '14px 16px' }}>Wardrobe Unlocks</th>
               <th style={{ padding: '14px 16px' }}>Last Active</th>
@@ -217,8 +217,15 @@ export const PlayersTab: React.FC<Props> = ({ showToast }) => {
                           {p.avatar.includes('girl') ? '👧' : (p.avatar.includes('ninja') ? '🥷' : '👦')}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main)' }}>
-                            {p.name}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main)' }}>
+                              {p.name}
+                            </span>
+                            {p.platform && (
+                              <span className="badge badge-blue" style={{ fontSize: '10px', padding: '2px 6px' }}>
+                                {p.platform.includes('android') ? 'Android' : (p.platform.includes('ios') ? 'iOS' : p.platform)}
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span>ID: {p.id}</span>
@@ -232,15 +239,18 @@ export const PlayersTab: React.FC<Props> = ({ showToast }) => {
                       </div>
                     </td>
 
-                    {/* Coins */}
+                    {/* Coins & Diamonds */}
                     <td style={{ padding: '14px 16px' }}>
-                      <span style={{ 
+                      <div style={{ 
                         fontFamily: 'var(--font-game)', 
-                        fontSize: '18px', 
+                        fontSize: '17px', 
                         color: 'var(--primary-gold)' 
                       }}>
-                        {p.coins.toLocaleString()}
-                      </span>
+                        🪙 {p.coins.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#60a5fa', fontWeight: 600, marginTop: '2px' }}>
+                        💎 {(p.diamonds || 0).toLocaleString()}
+                      </div>
                     </td>
 
                     {/* Stats */}

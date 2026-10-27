@@ -28,11 +28,11 @@ export function TestersTab({ onShowToast }: TestersTabProps) {
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'resolved'>('all');
   const [config, setConfig] = useState<DownloadConfig>({
     r2_download_url: '',
-    apk_version: 'v1.2.0-beta',
-    apk_size_mb: '70 MB',
+    apk_version: '',
+    apk_size_mb: '',
     apk_release_notes: [],
     download_enabled: true,
-    target_os: 'Android 8.0+'
+    target_os: ''
   });
   const [releaseNotesText, setReleaseNotesText] = useState<string>('');
   const [savingConfig, setSavingConfig] = useState<boolean>(false);

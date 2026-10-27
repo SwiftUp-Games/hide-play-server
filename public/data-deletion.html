@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Data Deletion Request — Hide & Play | SwiftUp</title>
+  <meta name="title" content="Data Deletion Request — Hide & Play | SwiftUp">
+  <meta name="description" content="Request deletion of your data and learn how to reset your local save data for Hide & Play (com.swiftup.hideplay) by SwiftUp.">
+  <meta name="robots" content="index, follow">
+
+  <!-- Favicon & Touch Icon -->
+  <link rel="icon" type="image/png" href="/assets/icon.png">
+  <link rel="apple-touch-icon" href="/assets/icon.png">
+  <meta name="theme-color" content="#071c11">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Data Deletion Request — Hide & Play | SwiftUp">
+  <meta property="og:description" content="Google Play Policy compliant Data Deletion & Account Erasure Instructions.">
+  <meta property="og:image" content="/assets/hpbanner.jpg">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #05140b;
+      --bg-card: rgba(10, 31, 18, 0.85);
+      --bg-elevated: rgba(16, 48, 28, 0.7);
+      --border-gold: rgba(245, 158, 11, 0.35);
+      --border-emerald: rgba(39, 174, 96, 0.3);
+      --text-main: #f1f8f3;
+      --text-muted: #a3c4b0;
+      --accent-gold: #f59e0b;
+      --accent-emerald: #10b981;
+      --accent-cyan: #38bdf8;
+      --accent-red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(39, 174, 96, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 85% 90%, rgba(245, 158, 11, 0.12) 0%, transparent 45%),
+        linear-gradient(180deg, #071c11 0%, #030e07 100%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.68;
+    }
+
+    /* Top Navigation Bar */
+    .legal-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(5, 20, 11, 0.92);
+      border-bottom: 1px solid var(--border-gold);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .nav-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    }
+
+    .nav-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: #fff;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* Hero Header */
+    .legal-hero {
+      text-align: center;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-emerald);
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 999px;
+      color: var(--accent-cyan);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .hero-meta {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .meta-tag {
+      color: var(--accent-gold);
+      font-weight: 600;
+    }
+
+    /* Step Card */
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(8px);
+    }
+
+    .step-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.35rem;
+      color: var(--accent-gold);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-number {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #071c11;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    p {
+      margin-bottom: 14px;
+      font-size: 0.98rem;
+      color: #d1e3d7;
+    }
+
+    ul, ol {
+      margin: 10px 0 16px 24px;
+      color: #d1e3d7;
+    }
+
+    li {
+      margin-bottom: 8px;
+      font-size: 0.96rem;
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .highlight-box {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 4px solid var(--accent-gold);
+      padding: 14px 18px;
+      border-radius: 0 10px 10px 0;
+      margin: 16px 0;
+      font-size: 0.94rem;
+    }
+
+    /* Form Container */
+    .deletion-form-container {
+      background: linear-gradient(135deg, rgba(16, 48, 28, 0.85) 0%, rgba(8, 24, 14, 0.92) 100%);
+      border: 1px solid var(--border-emerald);
+      border-radius: 18px;
+      padding: 28px;
+      margin-top: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.92rem;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(4, 15, 8, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-input:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    }
+
+    .form-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #071c11;
+      border: none;
+      font-family: 'Fredoka', cursive;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .form-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    /* Footer */
+    .legal-footer {
+      border-top: 1px solid var(--border-gold);
+      padding: 32px 24px;
+      text-align: center;
+      background: rgba(4, 15, 8, 0.95);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      color: var(--accent-gold);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Header Navigation -->
+  <header class="legal-nav">
+    <a href="/download" class="nav-brand">
+      <img src="/assets/icon.png" alt="Hide & Play Logo" class="nav-logo">
+      <span class="nav-title">Hide & Play</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/privacy" class="nav-link">Privacy Policy</a>
+      <a href="/terms" class="nav-link">Terms of Service</a>
+      <a href="/data-deletion" class="nav-link active">Data Deletion</a>
+      <a href="/download" class="nav-link">Test App</a>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <!-- Hero Header -->
+    <header class="legal-hero">
+      <div class="badge-pill">🗑️ Google Play Data Deletion Policy Verified</div>
+      <h1 class="hero-title">Data Deletion Request</h1>
+      <p class="hero-meta">
+        <strong>Application:</strong> Hide & Play (<code>com.swiftup.hideplay</code>)<br>
+        <strong>Publisher:</strong> <span class="meta-tag">SwiftUp</span> &bull; 
+        <strong>Effective Date:</strong> October 27, 2026
+      </p>
+    </header>
+
+    <p style="text-align:center; max-width:760px; margin: 0 auto 32px; font-size:1.05rem;">
+      In full compliance with the <strong>Google Play User Data &amp; Account Deletion Policy</strong> and global privacy regulations (GDPR &amp; CCPA), this page details exactly how you can permanently erase all personal and gameplay data associated with <em>Hide & Play</em>.
+    </p>
+
+    <!-- Method 1: Instant In-App Erasure -->
+    <article class="step-card">
+      <h2 class="step-title"><span class="step-number">1</span> Option A: Instant In-App Data Erase (Recommended)</h2>
+      <p>
+        Because <em>Hide & Play</em> does not mandate cloud accounts or passwords, <strong>99% of your data resides locally on your mobile device</strong> (saved under <code>user://save_game.json</code>).
+      </p>
+      <p>You can instantly delete all local data with a single tap:</p>
+      <ol>
+        <li>Open <strong>Hide &amp; Play</strong> on your Android or iOS device.</li>
+        <li>From the Main Lobby, tap the <strong>⚙️ Settings Button</strong> located on the top-right bar.</li>
+        <li>Scroll to the bottom of the Settings dialog and tap <strong>"🗑️ Reset Local Data / Clear Progress"</strong>.</li>
+        <li>Confirm the prompt. All stored coins, diamonds, custom outfits, player nicknames, sound preferences, and local match records are immediately and irreversibly purged from your hardware storage.</li>
+      </ol>
+      <div class="highlight-box">
+        <strong>Result:</strong> Your device is instantly restored to the fresh, out-of-the-box state. No telemetry remains on your hardware.
+      </div>
+    </article>
+
+    <!-- Method 2: Server Logs & Relay Purge -->
+    <article class="step-card">
+      <h2 class="step-title"><span class="step-number">2</span> Option B: Web Server Telemetry &amp; Feedback Deletion Request</h2>
+      <p>
+        When you submit feedback using the in-game feedback box, or when you connect to online multiplayer rooms, temporary IP logs or feedback messages may be received by our relay server.
+      </p>
+      <p>
+        To request a complete purge of any server-side records associated with your nickname or IP address, please submit the request below or email our privacy desk:
+      </p>
+
+      <div class="deletion-form-container">
+        <h3 style="color:#fff; margin-bottom:14px; font-family:'Fredoka',cursive; font-size:1.25rem;">Submit Deletion Request</h3>
+        <form action="mailto:support@swiftup.com?subject=Hide%20%26%20Play%20Data%20Deletion%20Request" method="POST" enctype="text/plain">
+          <div class="form-group">
+            <label class="form-label" for="nickname">In-Game Nickname (if applicable):</label>
+            <input type="text" id="nickname" name="nickname" class="form-input" placeholder="e.g. Kuttan, Seeker99">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="contact_email">Your Email Address for Confirmation:</label>
+            <input type="email" id="contact_email" name="contact_email" class="form-input" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="notes">Additional Information / Room Codes (optional):</label>
+            <textarea id="notes" name="notes" rows="3" class="form-textarea" placeholder="Include any details such as feedback submissions or timestamps..."></textarea>
+          </div>
+          <button type="submit" class="form-btn">📧 Send Deletion Request via Email</button>
+        </form>
+      </div>
+
+      <p style="margin-top:16px; font-size:0.92rem; color:var(--text-muted);">
+        <strong>Processing Timeline:</strong> In accordance with Google Play developer standards, requests submitted via email or this form are processed within <strong>30 calendar days</strong>. You will receive an email confirmation once server logs have been permanently deleted.
+      </p>
+    </article>
+
+    <!-- Data Categories & Retention Table -->
+    <article class="step-card">
+      <h2 class="step-title"><span class="step-number">3</span> Summary of Data Types &amp; Retention</h2>
+      <ul style="list-style:none; margin:0;">
+        <li style="margin-bottom:12px;"><strong>Voice Chat Audio:</strong> Stored <strong>0 seconds</strong>. Relayed ephemerally in RAM; never recorded or saved. No deletion request needed as audio is never retained.</li>
+        <li style="margin-bottom:12px;"><strong>Google Advertising ID:</strong> Managed directly via Google Play Services. You can reset or delete it anytime via <em>Android Settings &gt; Google &gt; Ads &gt; Delete Advertising ID</em>.</li>
+        <li style="margin-bottom:12px;"><strong>Feedback Submissions:</strong> Retained up to 90 days for software stabilization and bug fixes, then permanently purged.</li>
+      </ul>
+    </article>
+
+  </main>
+
+  <footer class="legal-footer">
+    <div class="footer-links">
+      <a href="/privacy" class="footer-link">Privacy Policy</a>
+      <a href="/terms" class="footer-link">Terms of Service</a>
+      <a href="/data-deletion" class="footer-link">Data Deletion Request</a>
+      <a href="/download" class="footer-link">Download Game</a>
+    </div>
+    <p>&copy; 2026 SwiftUp. All rights reserved. <em>Hide & Play</em> is a trademark of SwiftUp.</p>
+  </footer>
+
+</body>
+</html>

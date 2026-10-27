@@ -328,23 +328,23 @@ export const SecurityTab: React.FC<Props> = ({ showToast, onLogout }) => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
           <div style={{ background: 'rgba(8, 18, 12, 0.6)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>SERVER DEPLOYMENT</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>DATABASE CONNECTION</span>
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-green)', marginTop: '2px' }}>
-              Render Cloud (Asia-South)
+              🍃 MongoDB Atlas (Cluster0)
             </div>
           </div>
 
           <div style={{ background: 'rgba(8, 18, 12, 0.6)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>WEBSOCKET RELAY</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>ACTIVE RELAY ENDPOINT</span>
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary-gold)', marginTop: '2px' }}>
-              wss://hide-play-server.onrender.com
+              {typeof window !== 'undefined' ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}` : 'Active'}
             </div>
           </div>
 
           <div style={{ background: 'rgba(8, 18, 12, 0.6)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>GODOT ENGINE SUPPORT</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>VOICE CHAT ARCHITECTURE</span>
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-blue)', marginTop: '2px' }}>
-              v4.7.2 Android / iOS / Web
+              🎙️ TwoVoIP 48 kHz Opus GDExtension
             </div>
           </div>
         </div>

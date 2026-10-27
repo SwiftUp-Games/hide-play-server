@@ -1,14 +1,26 @@
 import fs from 'fs';
 import path from 'path';
+import { dbManager } from './db';
 
 export interface PlayerAccount {
   id: string;
+  master_uuid?: string;
+  platform?: 'android_pgs' | 'ios_gamecenter' | 'anonymous' | string;
+  platform_player_id?: string;
+  avatar_uri?: string;
+  auth_token?: string;
+  device_os?: string;
+  locale?: string;
+  app_version?: string;
+  is_anonymous?: boolean;
   name: string;
   mobile_number?: string;
   avatar: string;
   hat: string;
   dress: string;
   coins: number;
+  diamonds?: number;
+  no_ads_purchased?: boolean;
   matches_played: number;
   matches_won: number;
   high_score: number;
@@ -59,8 +71,10 @@ export interface AnalyticsEvent {
   id: string;
   timestamp: number;
   player_id?: string;
+  master_uuid?: string;
   player_name?: string;
-  event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN';
+  session_id?: string;
+  event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN' | string;
   metadata?: Record<string, any>;
 }
 
@@ -292,11 +306,52 @@ class GameStore {
   }
 
   // --------------------------------------------------------------------------
+  // DATABASE INITIALIZATION & HYDRATION (MONGODB ATLAS)
+  // --------------------------------------------------------------------------
+  public async initDatabase(): Promise<void> {
+    const connected = await dbManager.connect();
+    if (connected) {
+      const state = await dbManager.loadInitialState();
+      if (state) {
+        if (state.players && Object.keys(state.players).length > 0) {
+          this.data.players = { ...this.data.players, ...state.players };
+        }
+        if (state.analytics && state.analytics.length > 0) {
+          this.data.analytics_events = state.analytics;
+        }
+        if (state.feedbacks && state.feedbacks.length > 0) {
+          this.data.tester_feedbacks = state.feedbacks;
+        }
+        if (state.pricing) {
+          this.data.pricing = { ...this.data.pricing, ...state.pricing };
+        }
+        if (state.monetization) {
+          this.data.monetization = { ...this.data.monetization, ...state.monetization };
+        }
+        if (state.download_config) {
+          this.data.download_config = { ...this.data.download_config, ...state.download_config };
+        }
+        if (state.admin_mobile_number) {
+          this.data.admin_mobile_number = state.admin_mobile_number;
+        }
+        if (state.ad_stats) {
+          this.data.stats = { ...this.data.stats, ...state.ad_stats };
+        }
+        console.log('[GameStore] In-memory cache hydrated from MongoDB Atlas collections.');
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // AUTH (10-Digit OTP Authentication Code)
   // --------------------------------------------------------------------------
+  public getAdminCode(): string {
+    return (this.data.admin_mobile_number || '8606094557').trim().replace(/\D/g, '');
+  }
+
   public verifyMobile(mobile: string): boolean {
     const cleanInput = (mobile || '').trim().replace(/\D/g, '');
-    const cleanAdmin = (this.data.admin_mobile_number || '8606094557').trim().replace(/\D/g, '');
+    const cleanAdmin = this.getAdminCode();
     return cleanInput.length === 10 && cleanInput === cleanAdmin;
   }
 
@@ -319,31 +374,37 @@ class GameStore {
     this.activeSessions.delete(token);
   }
 
-  public updateAdminMobile(newMobile: string): { success: boolean; message: string } {
+  public async updateAdminMobile(newMobile: string): Promise<{ success: boolean; message: string }> {
     const clean = (newMobile || '').trim().replace(/\D/g, '');
     if (clean.length !== 10) {
       return { success: false, message: 'Authentication code must be exactly 10 digits.' };
     }
     this.data.admin_mobile_number = clean;
     this.saveData(this.data);
+    await dbManager.saveConfig('admin_security', { admin_mobile_number: clean });
     return { success: true, message: `Admin OTP authentication code updated to ${clean}` };
   }
 
-  public updateAdminCode(newCode: string): { success: boolean; message: string } {
+  public async updateAdminCode(newCode: string): Promise<{ success: boolean; message: string }> {
     return this.updateAdminMobile(newCode);
   }
 
   // --------------------------------------------------------------------------
-  // STATS & DASHBOARD
+  // STATS & DASHBOARD (PURE DATABASE FIRST)
   // --------------------------------------------------------------------------
-  public getDashboardOverview(activeRoomsCount: number, onlineClientsCount: number, liveRoomsList: any[]) {
+  public async getDashboardOverview(activeRoomsCount: number, onlineClientsCount: number, liveRoomsList: any[]) {
+    if (dbManager.getStatus().connected) {
+      const dbOverview = await dbManager.getDashboardOverview(activeRoomsCount, onlineClientsCount, liveRoomsList);
+      if (dbOverview) return dbOverview;
+    }
+
     const allPlayers = Object.values(this.data.players);
     const totalCoinsInCirculation = allPlayers.reduce((acc, p) => acc + (p.coins || 0), 0);
     const now = Date.now();
     const activeToday = allPlayers.filter(p => now - p.last_active_at < 86400000).length;
     const newToday = allPlayers.filter(p => now - p.created_at < 86400000).length;
 
-    // Real dynamic Ad Metrics: calculated purely from actual ad events (no fake mock defaults)
+    // Dynamic Ad Metrics
     const monMetrics = this.getMonetizationMetrics();
 
     return {
@@ -351,8 +412,9 @@ class GameStore {
         online_players: onlineClientsCount,
         active_rooms: activeRoomsCount,
         live_rooms: liveRoomsList,
-        region: 'Asia-South (Mumbai)',
-        uptime_seconds: Math.floor(process.uptime())
+        region: process.env.SERVER_REGION || 'Asia-South (Mumbai)',
+        uptime_seconds: Math.floor(process.uptime()),
+        database: dbManager.getStatus()
       },
       player_metrics: {
         total_registered_players: allPlayers.length,
@@ -371,7 +433,7 @@ class GameStore {
         rewarded_ads_watched: monMetrics.rewarded_views,
         estimated_ad_revenue_usd: monMetrics.estimated_revenue_usd
       },
-      recent_events: this.getRecentAnalyticsEvents(30)
+      recent_events: (this.data.analytics_events || []).slice(0, 30)
     };
   }
 
@@ -380,8 +442,10 @@ class GameStore {
   // --------------------------------------------------------------------------
   public recordAnalyticsEvent(event: {
     player_id?: string;
+    master_uuid?: string;
     player_name?: string;
-    event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN';
+    session_id?: string;
+    event_name: 'GAME_START' | 'GAME_END' | 'SHOP_PURCHASE' | 'AD_IMPRESSION' | 'AD_REWARD' | 'COIN_TRANSACTION' | 'PLAYER_JOIN' | string;
     metadata?: Record<string, any>;
     timestamp?: number;
   }): AnalyticsEvent {
@@ -389,7 +453,9 @@ class GameStore {
       id: 'evt_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
       timestamp: event.timestamp || Date.now(),
       player_id: event.player_id,
+      master_uuid: event.master_uuid,
       player_name: event.player_name,
+      session_id: event.session_id,
       event_name: event.event_name,
       metadata: event.metadata || {}
     };
@@ -429,21 +495,34 @@ class GameStore {
     }
 
     this.saveData(this.data);
+    dbManager.recordAnalyticsEvent(newEvent).catch(err => console.warn('[GameStore] Error saving analytics event to MongoDB:', err));
     return newEvent;
   }
 
-  public getRecentAnalyticsEvents(limit: number = 50): AnalyticsEvent[] {
+  public async getRecentAnalyticsEvents(limit: number = 50): Promise<AnalyticsEvent[]> {
+    if (dbManager.getStatus().connected) {
+      const events = await dbManager.getAnalyticsEvents(limit);
+      if (events) return events;
+    }
     return (this.data.analytics_events || []).slice(0, limit);
   }
 
   // --------------------------------------------------------------------------
-  // PLAYERS DIRECTORY
+  // PLAYERS DIRECTORY (PURE DATABASE FIRST)
   // --------------------------------------------------------------------------
-  public getAllPlayers(): PlayerAccount[] {
+  public async getAllPlayers(): Promise<PlayerAccount[]> {
+    if (dbManager.getStatus().connected) {
+      const dbPlayers = await dbManager.getPlayers();
+      if (dbPlayers && dbPlayers.length > 0) return dbPlayers;
+    }
     return Object.values(this.data.players).sort((a, b) => b.last_active_at - a.last_active_at);
   }
 
-  public getPlayer(id: string): PlayerAccount | undefined {
+  public async getPlayer(id: string): Promise<PlayerAccount | undefined> {
+    if (dbManager.getStatus().connected) {
+      const p = await dbManager.getPlayer(id);
+      if (p) return p;
+    }
     return this.data.players[id];
   }
 
@@ -477,6 +556,7 @@ class GameStore {
       }
       existing.last_active_at = Date.now();
       this.saveData(this.data);
+      dbManager.upsertPlayer(existing).catch(err => console.warn('[GameStore] Error updating player in MongoDB:', err));
       return existing;
     } else {
       const newPlayer: PlayerAccount = {
@@ -498,6 +578,7 @@ class GameStore {
       };
       this.data.players[id] = newPlayer;
       this.saveData(this.data);
+      dbManager.upsertPlayer(newPlayer).catch(err => console.warn('[GameStore] Error inserting player in MongoDB:', err));
       this.recordAnalyticsEvent({
         player_id: id,
         player_name: newPlayer.name,
@@ -508,7 +589,19 @@ class GameStore {
     }
   }
 
-  public adjustCoins(playerId: string, amount: number, mode: 'add' | 'set'): { success: boolean; new_coins?: number; message?: string } {
+  public async adjustCoins(playerId: string, amount: number, mode: 'add' | 'set'): Promise<{ success: boolean; new_coins?: number; message?: string }> {
+    if (dbManager.getStatus().connected) {
+      const dbRes = await dbManager.adjustPlayerCoins(playerId, amount, mode);
+      if (dbRes.success && typeof dbRes.new_coins === 'number') {
+        if (this.data.players[playerId]) {
+          this.data.players[playerId].coins = dbRes.new_coins;
+          this.data.players[playerId].coins_updated_by_admin = true;
+          this.data.players[playerId].last_active_at = Date.now();
+        }
+        return dbRes;
+      }
+    }
+
     const player = this.data.players[playerId];
     if (!player) {
       return { success: false, message: 'Player not found.' };
@@ -526,10 +619,24 @@ class GameStore {
     player.coins_updated_by_admin = true;
     player.last_active_at = Date.now();
     this.saveData(this.data);
+    dbManager.upsertPlayer(player).catch(err => console.warn('[GameStore] Error updating player coins in MongoDB:', err));
     return { success: true, new_coins: player.coins };
   }
 
-  public unlockItem(playerId: string, itemType: 'avatar' | 'hat' | 'dress', itemId: string): { success: boolean; message?: string } {
+  public async unlockItem(playerId: string, itemType: 'avatar' | 'hat' | 'dress', itemId: string): Promise<{ success: boolean; message?: string }> {
+    if (dbManager.getStatus().connected) {
+      const dbRes = await dbManager.unlockPlayerItem(playerId, itemType, itemId);
+      if (dbRes.success) {
+        const player = this.data.players[playerId];
+        if (player) {
+          if (itemType === 'avatar' && !player.unlocked_avatars.includes(itemId)) player.unlocked_avatars.push(itemId);
+          if (itemType === 'hat' && !player.unlocked_hats.includes(itemId)) player.unlocked_hats.push(itemId);
+          if (itemType === 'dress' && !player.unlocked_dresses.includes(itemId)) player.unlocked_dresses.push(itemId);
+        }
+        return dbRes;
+      }
+    }
+
     const player = this.data.players[playerId];
     if (!player) return { success: false, message: 'Player not found.' };
     if (itemType === 'avatar') {
@@ -540,10 +647,14 @@ class GameStore {
       if (!player.unlocked_dresses.includes(itemId)) player.unlocked_dresses.push(itemId);
     }
     this.saveData(this.data);
+    dbManager.upsertPlayer(player).catch(err => console.warn('[GameStore] Error updating player unlocks in MongoDB:', err));
     return { success: true };
   }
 
-  public deletePlayer(playerId: string): boolean {
+  public async deletePlayer(playerId: string): Promise<boolean> {
+    if (dbManager.getStatus().connected) {
+      await dbManager.deletePlayer(playerId);
+    }
     if (this.data.players[playerId]) {
       delete this.data.players[playerId];
       this.saveData(this.data);
@@ -552,14 +663,159 @@ class GameStore {
     return false;
   }
 
+  public syncAuthPlayer(payload: {
+    master_uuid: string;
+    platform?: string;
+    platform_player_id?: string;
+    display_name?: string;
+    avatar_uri?: string;
+    auth_token?: string;
+    is_anonymous?: boolean;
+    app_version?: string;
+    device_os?: string;
+    locale?: string;
+    coins?: number;
+    diamonds?: number;
+    no_ads_purchased?: boolean;
+    unlocked_avatars?: string[];
+    unlocked_hats?: string[];
+    unlocked_dresses?: string[];
+  }): PlayerAccount {
+    const masterId = payload.master_uuid;
+    let existingPlayer = this.data.players[masterId];
+
+    // Check if player exists by platform_player_id (link platform account to master UUID)
+    if (!existingPlayer && payload.platform_player_id) {
+      for (const p of Object.values(this.data.players)) {
+        if (p.platform_player_id === payload.platform_player_id) {
+          existingPlayer = p;
+          break;
+        }
+      }
+    }
+
+    if (existingPlayer) {
+      if (payload.display_name && (existingPlayer.name === 'Kuttan' || !existingPlayer.name)) {
+        existingPlayer.name = payload.display_name;
+      }
+      if (payload.platform) existingPlayer.platform = payload.platform;
+      if (payload.platform_player_id) existingPlayer.platform_player_id = payload.platform_player_id;
+      if (payload.avatar_uri) existingPlayer.avatar_uri = payload.avatar_uri;
+      if (payload.auth_token) existingPlayer.auth_token = payload.auth_token;
+      if (payload.device_os) existingPlayer.device_os = payload.device_os;
+      if (payload.locale) existingPlayer.locale = payload.locale;
+      if (payload.app_version) existingPlayer.app_version = payload.app_version;
+      if (typeof payload.is_anonymous === 'boolean') existingPlayer.is_anonymous = payload.is_anonymous;
+
+      // Cloud Economy Restoration & Bidirectional Sync
+      if (typeof payload.coins === 'number') {
+        existingPlayer.coins = Math.max(existingPlayer.coins || 0, payload.coins);
+      }
+      if (typeof payload.diamonds === 'number') {
+        existingPlayer.diamonds = Math.max(existingPlayer.diamonds || 0, payload.diamonds);
+      }
+      if (payload.no_ads_purchased === true) {
+        existingPlayer.no_ads_purchased = true;
+      }
+      if (Array.isArray(payload.unlocked_avatars)) {
+        existingPlayer.unlocked_avatars = Array.from(new Set([...(existingPlayer.unlocked_avatars || []), ...payload.unlocked_avatars]));
+      }
+      if (Array.isArray(payload.unlocked_hats)) {
+        existingPlayer.unlocked_hats = Array.from(new Set([...(existingPlayer.unlocked_hats || []), ...payload.unlocked_hats]));
+      }
+      if (Array.isArray(payload.unlocked_dresses)) {
+        existingPlayer.unlocked_dresses = Array.from(new Set([...(existingPlayer.unlocked_dresses || []), ...payload.unlocked_dresses]));
+      }
+
+      existingPlayer.last_active_at = Date.now();
+      this.saveData(this.data);
+      dbManager.upsertPlayer(existingPlayer).catch(err => console.warn('[GameStore] Error updating auth player in MongoDB:', err));
+      return existingPlayer;
+    }
+
+    // Create fresh player record with master_uuid
+    const newPlayer: PlayerAccount = {
+      id: masterId,
+      master_uuid: masterId,
+      name: payload.display_name || 'Kuttan',
+      platform: payload.platform || 'anonymous',
+      platform_player_id: payload.platform_player_id || '',
+      avatar_uri: payload.avatar_uri || '',
+      auth_token: payload.auth_token || '',
+      device_os: payload.device_os || '',
+      locale: payload.locale || '',
+      app_version: payload.app_version || '1.0.4',
+      is_anonymous: payload.is_anonymous !== undefined ? payload.is_anonymous : true,
+      avatar: 'boy_default',
+      hat: 'hat_none',
+      dress: 'dress_mundu',
+      coins: typeof payload.coins === 'number' ? Math.max(500, payload.coins) : 500,
+      diamonds: typeof payload.diamonds === 'number' ? Math.max(15, payload.diamonds) : 15,
+      no_ads_purchased: payload.no_ads_purchased || false,
+      matches_played: 0,
+      matches_won: 0,
+      high_score: 0,
+      unlocked_avatars: Array.isArray(payload.unlocked_avatars) && payload.unlocked_avatars.length > 0 ? payload.unlocked_avatars : ['boy_default', 'girl_default'],
+      unlocked_hats: Array.isArray(payload.unlocked_hats) && payload.unlocked_hats.length > 0 ? payload.unlocked_hats : ['hat_none'],
+      unlocked_dresses: Array.isArray(payload.unlocked_dresses) && payload.unlocked_dresses.length > 0 ? payload.unlocked_dresses : ['dress_mundu'],
+      created_at: Date.now(),
+      last_active_at: Date.now()
+    };
+    this.data.players[masterId] = newPlayer;
+    this.saveData(this.data);
+    dbManager.upsertPlayer(newPlayer).catch(err => console.warn('[GameStore] Error inserting auth player in MongoDB:', err));
+    return newPlayer;
+  }
+
+  public deleteUserAccount(target: { master_uuid?: string; platform_player_id?: string }): { success: boolean; deleted_count: number } {
+    let deletedCount = 0;
+    const targetMaster = target.master_uuid;
+    const targetPlatform = target.platform_player_id;
+
+    const idsToDelete: string[] = [];
+    for (const [id, player] of Object.entries(this.data.players)) {
+      if ((targetMaster && (id === targetMaster || player.master_uuid === targetMaster)) ||
+          (targetPlatform && targetPlatform.length > 0 && player.platform_player_id === targetPlatform)) {
+        idsToDelete.push(id);
+      }
+    }
+
+    for (const id of idsToDelete) {
+      delete this.data.players[id];
+      dbManager.deletePlayer(id).catch(err => console.warn('[GameStore] Error deleting player from MongoDB:', err));
+      deletedCount++;
+    }
+
+    // Purge corresponding analytics events for complete legal privacy compliance
+    if (Array.isArray(this.data.analytics_events)) {
+      this.data.analytics_events = this.data.analytics_events.filter(e => {
+        if (targetMaster && (e.master_uuid === targetMaster || e.player_id === targetMaster)) return false;
+        return true;
+      });
+    }
+
+    if (targetMaster) {
+      dbManager.purgePlayerAnalytics(targetMaster).catch(err => console.warn('[GameStore] Error purging analytics from MongoDB:', err));
+    }
+
+    if (deletedCount > 0) {
+      this.saveData(this.data);
+    }
+    return { success: true, deleted_count: deletedCount };
+  }
+
   // --------------------------------------------------------------------------
-  // PRICING MANAGEMENT
+  // PRICING MANAGEMENT (DATABASE-FIRST)
   // --------------------------------------------------------------------------
-  public getPricing(): PricingCatalog {
+  public async getPricing(): Promise<PricingCatalog> {
+    if (dbManager.getStatus().connected) {
+      const cfg = await dbManager.getConfig<PricingCatalog>('pricing');
+      if (cfg) return cfg;
+    }
     return this.data.pricing;
   }
 
-  public updatePricing(newPricing: Partial<PricingCatalog>): PricingCatalog {
+  public async updatePricing(newPricing: Partial<PricingCatalog>): Promise<PricingCatalog> {
     if (newPricing.avatars) {
       this.data.pricing.avatars = { ...this.data.pricing.avatars, ...newPricing.avatars };
     }
@@ -573,19 +829,25 @@ class GameStore {
       this.data.pricing.coin_bundles = newPricing.coin_bundles;
     }
     this.saveData(this.data);
+    await dbManager.saveConfig('pricing', this.data.pricing);
     return this.data.pricing;
   }
 
   // --------------------------------------------------------------------------
-  // MONETIZATION & ADS CONFIG
+  // MONETIZATION & ADS CONFIG (DATABASE-FIRST)
   // --------------------------------------------------------------------------
-  public getMonetization(): MonetizationConfig {
+  public async getMonetization(): Promise<MonetizationConfig> {
+    if (dbManager.getStatus().connected) {
+      const cfg = await dbManager.getConfig<MonetizationConfig>('monetization');
+      if (cfg) return cfg;
+    }
     return this.data.monetization;
   }
 
-  public updateMonetization(newConfig: Partial<MonetizationConfig>): MonetizationConfig {
+  public async updateMonetization(newConfig: Partial<MonetizationConfig>): Promise<MonetizationConfig> {
     this.data.monetization = { ...this.data.monetization, ...newConfig };
     this.saveData(this.data);
+    await dbManager.saveConfig('monetization', this.data.monetization);
     return this.data.monetization;
   }
 
@@ -658,6 +920,14 @@ class GameStore {
     }
 
     this.saveData(this.data);
+    dbManager.saveConfig('ad_stats', {
+      ad_impressions: this.data.stats.ad_impressions,
+      banner_impressions: this.data.stats.banner_impressions,
+      rewarded_ads_watched: this.data.stats.rewarded_ads_watched,
+      ad_clicks: this.data.stats.ad_clicks,
+      diamonds_distributed: this.data.stats.diamonds_distributed,
+      daily_ad_stats: this.data.stats.daily_ad_stats
+    }).catch(err => console.warn('[GameStore] Error saving ad_stats to DB:', err));
     return { success: true, stats: this.getMonetizationMetrics() };
   }
 
@@ -781,7 +1051,7 @@ class GameStore {
     };
   }
 
-  public resetMonetizationMetrics(): { success: boolean; message: string } {
+  public async resetMonetizationMetrics(): Promise<{ success: boolean; message: string }> {
     this.data.stats.ad_impressions = 0;
     this.data.stats.banner_impressions = 0;
     this.data.stats.rewarded_ads_watched = 0;
@@ -789,7 +1059,15 @@ class GameStore {
     this.data.stats.diamonds_distributed = 0;
     this.data.stats.daily_ad_stats = {};
     this.saveData(this.data);
-    return { success: true, message: 'All ad metrics have been reset successfully.' };
+    await dbManager.saveConfig('ad_stats', {
+      ad_impressions: 0,
+      banner_impressions: 0,
+      rewarded_ads_watched: 0,
+      ad_clicks: 0,
+      diamonds_distributed: 0,
+      daily_ad_stats: {}
+    });
+    return { success: true, message: 'All ad metrics have been reset successfully in database and local cache.' };
   }
 
   public recordGameCompleted(): void {
@@ -798,7 +1076,38 @@ class GameStore {
   }
 
   // Public config served to Godot mobile clients
-  public getPublicClientConfig() {
+  public async getPublicClientConfig() {
+    const pricing = await this.getPricing();
+    const monetization = await this.getMonetization();
+    return {
+      pricing,
+      monetization: {
+        ads_enabled: monetization.ads_enabled,
+        banner_ads_enabled: monetization.banner_ads_enabled,
+        interstitial_ads_enabled: monetization.interstitial_ads_enabled,
+        rewarded_video_enabled: monetization.rewarded_video_enabled,
+        use_test_ads: monetization.use_test_ads,
+        reward_diamonds_amount: monetization.reward_diamonds_amount || 5,
+        daily_impression_target: monetization.daily_impression_target || 10,
+        banner_refresh_seconds: monetization.banner_refresh_seconds || 30,
+        reward_cooldown_seconds: monetization.reward_cooldown_seconds || 60,
+        max_daily_rewarded_views: monetization.max_daily_rewarded_views || 8,
+        rewarded_video_coin_reward: monetization.rewarded_video_coin_reward,
+        daily_reward_coins: monetization.daily_reward_coins,
+        win_coin_reward: monetization.win_coin_reward,
+        catch_hider_coin_reward: monetization.catch_hider_coin_reward,
+        interstitial_interval_matches: monetization.interstitial_interval_matches,
+        admob_app_id: monetization.admob_app_id,
+        banner_ad_unit_id: monetization.banner_ad_unit_id,
+        interstitial_ad_unit_id: monetization.interstitial_ad_unit_id,
+        rewarded_ad_unit_id: monetization.rewarded_ad_unit_id
+      },
+      version: '1.2.0',
+      maintenance: false
+    };
+  }
+
+  public getPublicClientConfigSync() {
     return {
       pricing: this.data.pricing,
       monetization: {
@@ -828,18 +1137,23 @@ class GameStore {
   }
 
   // --------------------------------------------------------------------------
-  // DOWNLOAD & TESTER STORAGE CONFIG
+  // DOWNLOAD & TESTER STORAGE CONFIG (DATABASE-FIRST)
   // --------------------------------------------------------------------------
-  public getDownloadConfig(): DownloadConfig {
+  public async getDownloadConfig(): Promise<DownloadConfig> {
+    if (dbManager.getStatus().connected) {
+      const cfg = await dbManager.getConfig<DownloadConfig>('download_config');
+      if (cfg) return cfg;
+    }
     return this.data.download_config;
   }
 
-  public updateDownloadConfig(update: Partial<DownloadConfig>): DownloadConfig {
+  public async updateDownloadConfig(update: Partial<DownloadConfig>): Promise<DownloadConfig> {
     this.data.download_config = {
       ...this.data.download_config,
       ...update
     };
     this.saveData(this.data);
+    await dbManager.saveConfig('download_config', this.data.download_config);
     return this.data.download_config;
   }
 
@@ -870,14 +1184,15 @@ class GameStore {
     return 'Other';
   }
 
-  public trackPageVisit(ip: string, userAgent: string, _referrer?: string): void {
+  public trackPageVisit(ip: string, userAgent: string, referrer?: string): void {
     this.data.tester_analytics.page_views += 1;
     const today = this._ensureTodayDailyStats();
     today.views += 1;
 
     // Track unique visitor
     const visitorKey = `${ip}_${this._getTodayKey()}`;
-    if (!this.trackedVisitorIps.has(visitorKey)) {
+    const isUnique = !this.trackedVisitorIps.has(visitorKey);
+    if (isUnique) {
       this.trackedVisitorIps.add(visitorKey);
       this.data.tester_analytics.unique_visitors += 1;
     }
@@ -887,23 +1202,38 @@ class GameStore {
     this.data.tester_analytics.visitor_devices[device] = (this.data.tester_analytics.visitor_devices[device] || 0) + 1;
 
     this.saveData(this.data);
+    dbManager.recordPromoEvent('visit', { ip, user_agent: userAgent, device, referrer, is_unique: isUnique }).catch(err => console.warn('[GameStore] Error recording visit in MongoDB:', err));
   }
 
-  public trackDownloadClick(_ip: string, _userAgent: string): void {
+  public trackDownloadClick(ip: string, userAgent: string): void {
     this.data.tester_analytics.download_clicks += 1;
     const today = this._ensureTodayDailyStats();
     today.downloads += 1;
     this.saveData(this.data);
+    const device = this._detectDeviceFromUA(userAgent);
+    dbManager.recordPromoEvent('click', { ip, user_agent: userAgent, device }).catch(err => console.warn('[GameStore] Error recording download click in MongoDB:', err));
   }
 
-  public trackGameOpen(_playerId?: string): void {
+  public trackGameOpen(playerId?: string): void {
     this.data.tester_analytics.game_opens += 1;
     const today = this._ensureTodayDailyStats();
     today.game_opens += 1;
     this.saveData(this.data);
+    dbManager.recordAnalyticsEvent({
+      id: 'evt_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      timestamp: Date.now(),
+      player_id: playerId,
+      event_name: 'GAME_LAUNCH',
+      metadata: { player_id: playerId }
+    }).catch(err => console.warn('[GameStore] Error recording game launch in MongoDB:', err));
   }
 
-  public getTesterAnalytics() {
+  public async getTesterAnalytics() {
+    if (dbManager.getStatus().connected) {
+      const dbAnalytics = await dbManager.getTesterAnalytics();
+      if (dbAnalytics) return dbAnalytics;
+    }
+
     const views = this.data.tester_analytics.page_views;
     const downloads = this.data.tester_analytics.download_clicks;
     const opens = this.data.tester_analytics.game_opens;
@@ -952,31 +1282,44 @@ class GameStore {
       this.data.tester_feedbacks = this.data.tester_feedbacks.slice(0, 300);
     }
     this.saveData(this.data);
+    dbManager.insertFeedback(entry).catch(err => console.warn('[GameStore] Error inserting feedback in MongoDB:', err));
     return entry;
   }
 
-  public getTesterFeedbacks(limit: number = 50): TesterFeedback[] {
-    return this.data.tester_feedbacks.slice(0, limit);
+  public async getTesterFeedbacks(limit: number = 50): Promise<TesterFeedback[]> {
+    if (dbManager.getStatus().connected) {
+      const dbFeedbacks = await dbManager.getFeedbacks(limit);
+      if (dbFeedbacks && dbFeedbacks.length > 0) return dbFeedbacks;
+    }
+    return (this.data.tester_feedbacks || []).slice(0, limit);
   }
 
-  public updateTesterFeedbackStatus(id: string, status: 'new' | 'reviewed' | 'resolved'): boolean {
-    const item = this.data.tester_feedbacks.find(f => f.id === id);
+  public async updateTesterFeedbackStatus(id: string, status: 'new' | 'reviewed' | 'resolved'): Promise<boolean> {
+    let dbOk = false;
+    if (dbManager.getStatus().connected) {
+      dbOk = await dbManager.updateFeedbackStatus(id, status);
+    }
+    const item = (this.data.tester_feedbacks || []).find(f => f.id === id);
     if (item) {
       item.status = status;
       this.saveData(this.data);
       return true;
     }
-    return false;
+    return dbOk;
   }
 
-  public deleteTesterFeedback(id: string): boolean {
-    const idx = this.data.tester_feedbacks.findIndex(f => f.id === id);
+  public async deleteTesterFeedback(id: string): Promise<boolean> {
+    let dbOk = false;
+    if (dbManager.getStatus().connected) {
+      dbOk = await dbManager.deleteFeedback(id);
+    }
+    const idx = (this.data.tester_feedbacks || []).findIndex(f => f.id === id);
     if (idx !== -1) {
       this.data.tester_feedbacks.splice(idx, 1);
       this.saveData(this.data);
       return true;
     }
-    return false;
+    return dbOk;
   }
 }
 

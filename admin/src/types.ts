@@ -14,6 +14,7 @@ export interface LiveStats {
   }>;
   region: string;
   uptime_seconds: number;
+  database?: { connected: boolean; db_name: string };
 }
 
 export interface PlayerMetrics {
@@ -97,18 +98,28 @@ export interface DashboardData {
 
 export interface PlayerAccount {
   id: string;
+  master_uuid?: string;
+  platform?: string;
+  platform_player_id?: string;
+  display_name?: string;
   name: string;
   mobile_number?: string;
   avatar: string;
   hat: string;
   dress: string;
   coins: number;
+  diamonds?: number;
   matches_played: number;
   matches_won: number;
   high_score: number;
   unlocked_avatars: string[];
   unlocked_hats: string[];
   unlocked_dresses: string[];
+  device_os?: string;
+  locale?: string;
+  app_version?: string;
+  is_anonymous?: boolean;
+  no_ads_purchased?: boolean;
   created_at: number;
   last_active_at: number;
   is_online?: boolean;

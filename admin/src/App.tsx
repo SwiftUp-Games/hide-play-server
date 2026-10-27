@@ -64,7 +64,7 @@ export function App() {
       adminApi.verifySession().then(res => {
         if (res.valid) {
           setIsAuthenticated(true);
-          setAdminPhone(phone || '8606094557');
+          setAdminPhone(res.admin_code || phone || '');
         } else {
           setIsAuthenticated(false);
         }

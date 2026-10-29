@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hide & Play - Available To Test Now</title>
+  <meta name="title" content="Hide & Play - Available To Test Now">
+  <meta name="description" content="Remember your childhood. Play traditional hide & seek with friends online. Download the APK and be a part of our testing team!">
+  <link rel="canonical" href="https://hideplay.swiftup.in/">
+
+  <!-- Schema.org / Google / WhatsApp Microdata -->
+  <meta itemprop="name" content="Hide & Play - Available To Test Now">
+  <meta itemprop="description" content="Remember your childhood. Play traditional hide & seek with friends online. Download the APK and be a part of our testing team!">
+  <meta itemprop="image" content="https://hideplay.swiftup.in/hpbanner-og.jpg">
+
+  <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hideplay.swiftup.in/">
+  <meta property="og:site_name" content="Hide & Play">
+  <meta property="og:title" content="Hide & Play - Available To Test Now">
+  <meta property="og:description" content="Remember your childhood. Play traditional hide & seek with friends online. Download the APK and be a part of our testing team!">
+  
+  <!-- Primary High-Res Banner (1200x630, Optimized 216KB for WhatsApp preview) -->
+  <meta property="og:image" content="https://hideplay.swiftup.in/hpbanner-og.jpg">
+  <meta property="og:image:secure_url" content="https://hideplay.swiftup.in/hpbanner-og.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Hide & Play - Traditional Hide & Seek Online Game">
+  
+  <!-- Secondary Square Thumbnail for WhatsApp Compact Cards (400x400, 89KB) -->
+  <meta property="og:image" content="https://hideplay.swiftup.in/assets/icon-thumb.jpg">
+  <meta property="og:image:secure_url" content="https://hideplay.swiftup.in/assets/icon-thumb.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="400">
+  <meta property="og:image:height" content="400">
+
+  <!-- Twitter / X Large Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://hideplay.swiftup.in/">
+  <meta name="twitter:title" content="Hide & Play - Available To Test Now">
+  <meta name="twitter:description" content="Remember your childhood. Play traditional hide & seek with friends online. Download the APK and be a part of our testing team!">
+  <meta name="twitter:image" content="https://hideplay.swiftup.in/hpbanner-og.jpg">
+
+  <!-- Legacy & Search Engine Thumbnail Fallback -->
+  <link rel="image_src" href="https://hideplay.swiftup.in/hpbanner-og.jpg">
+  <link rel="apple-touch-icon" href="https://hideplay.swiftup.in/assets/icon-thumb.jpg">
+  <meta name="theme-color" content="#071b10">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/assets/icon.png">
+
+  <!-- Google Game Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #06180e;
+      font-family: 'Fredoka', 'Outfit', sans-serif;
+      color: #fff;
+    }
+
+    /* Ambient Game Scene */
+    .viewport-scene {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 20px 28px;
+      background: 
+        radial-gradient(circle at 50% 25%, rgba(39, 174, 96, 0.28) 0%, transparent 65%),
+        radial-gradient(circle at 15% 75%, rgba(245, 158, 11, 0.16) 0%, transparent 50%),
+        radial-gradient(circle at 85% 75%, rgba(16, 185, 129, 0.18) 0%, transparent 50%),
+        linear-gradient(180deg, #071c11 0%, #04100a 100%);
+    }
+
+    .ambient-stars {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, #ffd166, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 50px 160px, #fde047, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 90px 40px, #34d399, rgba(0,0,0,0)),
+        radial-gradient(3px 3px at 140px 90px, #f59e0b, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 220px 220px;
+      opacity: 0.55;
+      animation: floatStars 24s linear infinite;
+    }
+
+    @keyframes floatStars {
+      from { transform: translateY(0); }
+      to { transform: translateY(-220px); }
+    }
+
+    /* Top Bar */
+    .top-header {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .badge-pill {
+      background: rgba(14, 43, 27, 0.85);
+      border: 1.5px solid rgba(255, 183, 3, 0.45);
+      padding: 6px 14px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #2ecc71;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #2ecc71;
+      animation: pulseDot 1.6s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(1.3); }
+    }
+
+    .badge-text {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffd166;
+      letter-spacing: 0.6px;
+    }
+
+    .btn-top-feedback {
+      background: rgba(14, 43, 27, 0.75);
+      border: 1px solid rgba(255, 183, 3, 0.35);
+      color: #ffd166;
+      padding: 6px 14px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      transition: transform 0.12s ease;
+    }
+
+    .btn-top-feedback:active {
+      transform: scale(0.94);
+    }
+
+    /* Center Hero Artwork & Simple Details */
+    .hero-center {
+      position: relative;
+      width: 100%;
+      max-width: 440px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .stage-glow {
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 183, 3, 0.22) 0%, rgba(39, 174, 96, 0.15) 50%, transparent 75%);
+      filter: blur(36px);
+      pointer-events: none;
+      animation: pulseGlow 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(0.9); opacity: 0.6; }
+      to { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* Game Logo Artwork */
+    .logo-box {
+      position: relative;
+      width: 88%;
+      max-width: 330px;
+      filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.7));
+      animation: logoFloat 4s ease-in-out infinite;
+      z-index: 3;
+      margin-bottom: 20px;
+    }
+
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .logo-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* Game Tag Badge */
+    .game-tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(14, 43, 27, 0.7);
+      border: 1px solid rgba(110, 231, 183, 0.35);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #6ee7b7;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Gamified Thematic Elements (Childhood & Friends Theme) */
+    .theme-chips-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      max-width: 330px;
+      z-index: 5;
+    }
+
+    .theme-chip {
+      background: linear-gradient(135deg, rgba(14, 43, 27, 0.85) 0%, rgba(6, 24, 15, 0.9) 100%);
+      border: 1.5px solid rgba(255, 183, 3, 0.35);
+      border-radius: 16px;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      transition: transform 0.15s ease;
+    }
+
+    .theme-chip-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #195232, #0d301c);
+      border: 1px solid rgba(255, 183, 3, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .theme-chip-body {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .theme-chip-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #ffd166;
+      letter-spacing: 0.3px;
+      line-height: 1.2;
+    }
+
+    .theme-chip-desc {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      letter-spacing: 0.2px;
+      margin-top: 2px;
+    }
+
+    /* Ambient Scenery Foliage & Peeking Characters */
+    .scenery-bush-left {
+      position: absolute;
+      bottom: -20px;
+      left: -40px;
+      width: 110px;
+      pointer-events: none;
+      opacity: 0.35;
+      z-index: 0;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.7));
+    }
+
+    .scenery-bush-right {
+      position: absolute;
+      bottom: -20px;
+      right: -40px;
+      width: 110px;
+      pointer-events: none;
+      opacity: 0.35;
+      z-index: 0;
+      transform: scaleX(-1);
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.7));
+    }
+
+    .peeking-char-left {
+      position: absolute;
+      left: -24px;
+      top: 12px;
+      width: 44px;
+      z-index: 6;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.75));
+      animation: peekBobLeft 4s ease-in-out infinite;
+    }
+
+    @keyframes peekBobLeft {
+      0%, 100% { transform: translateY(0) rotate(-6deg); }
+      50% { transform: translateY(-5px) rotate(-2deg); }
+    }
+
+    .peeking-char-right {
+      position: absolute;
+      right: -24px;
+      bottom: 12px;
+      width: 44px;
+      z-index: 6;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.75));
+      animation: peekBobRight 4.4s ease-in-out infinite;
+    }
+
+    @keyframes peekBobRight {
+      0%, 100% { transform: translateY(0) rotate(6deg); }
+      50% { transform: translateY(-5px) rotate(2deg); }
+    }
+
+    /* Below Center Action Area */
+    .action-panel {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+      margin-bottom: 6px;
+    }
+
+    /* Tactile Download Button */
+    .btn-download {
+      position: relative;
+      width: 100%;
+      background: linear-gradient(180deg, #2fe075 0%, #159c4e 100%);
+      border: 3px solid #6ee7b7;
+      border-radius: 24px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 
+        0 10px 0 #0d5f2f,
+        0 16px 28px rgba(0, 0, 0, 0.65),
+        inset 0 2px 4px rgba(255, 255, 255, 0.45);
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 0 #0d5f2f,
+        0 20px 32px rgba(0, 0, 0, 0.7),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-download:active {
+      transform: translateY(8px);
+      box-shadow: 
+        0 2px 0 #0d5f2f,
+        0 6px 14px rgba(0, 0, 0, 0.5),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-icon-box {
+      width: 42px;
+      height: 42px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+      animation: pulseIcon 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseIcon {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    .btn-main-title {
+      font-size: 23px;
+      font-weight: 800;
+      color: #042914;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.6px;
+    }
+
+    .btn-badge-corner {
+      position: absolute;
+      top: -11px;
+      right: 18px;
+      background: linear-gradient(135deg, #ffd166, #f59e0b);
+      color: #451a03;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35), 0 2px 0 #b45309;
+      border: 1px solid #fef3c7;
+      letter-spacing: 0.4px;
+    }
+
+    /* Simple Under-Button Details */
+    .under-guide {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #94a3b8;
+      padding: 0 6px;
+    }
+
+    .simple-cue {
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .btn-feedback-link {
+      background: none;
+      border: none;
+      color: #ffd166;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-feedback-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Minimal Feedback Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+      animation: modalFadeIn 0.2s ease forwards;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-content {
+      background: linear-gradient(165deg, #0e2d1d, #07190f);
+      border: 2px solid rgba(255, 183, 3, 0.45);
+      border-radius: 28px;
+      width: 100%;
+      max-width: 380px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      position: relative;
+    }
+
+    .btn-modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content h3 {
+      font-size: 20px;
+      color: #ffd166;
+      margin-bottom: 4px;
+    }
+
+    .modal-content p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+
+    .stars-selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      font-size: 32px;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.2);
+      transition: transform 0.12s ease, color 0.12s ease;
+    }
+
+    .star-btn.active {
+      color: #ffb703;
+      transform: scale(1.15);
+    }
+
+    .modal-input, .modal-textarea {
+      width: 100%;
+      background: rgba(5, 18, 11, 0.85);
+      border: 1px solid rgba(84, 180, 114, 0.35);
+      border-radius: 14px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13.5px;
+      margin-bottom: 10px;
+      outline: none;
+    }
+
+    .modal-input:focus, .modal-textarea:focus {
+      border-color: #ffd166;
+    }
+
+    .modal-textarea {
+      min-height: 80px;
+      resize: none;
+    }
+
+    .btn-modal-submit {
+      width: 100%;
+      background: linear-gradient(180deg, #ffb703, #fb8500);
+      color: #2e1003;
+      border: none;
+      border-radius: 16px;
+      padding: 13px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #b45309, 0 8px 18px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
+    }
+
+    .btn-modal-submit:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #b45309;
+    }
+
+    /* Toast */
+    .toast-pill {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-150%);
+      background: #0f3d24;
+      border: 2px solid #2ecc71;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 200;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast-pill.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport-scene">
+    <div class="ambient-stars"></div>
+
+    <!-- Top Bar -->
+    <header class="top-header">
+      <div class="badge-pill">
+        <span class="live-dot"></span>
+        <span class="badge-text">BETA TESTING</span>
+      </div>
+
+      <button id="openFeedbackBtn" class="btn-top-feedback" title="Feedback">
+        <span>⭐</span>
+        <span>Feedback</span>
+      </button>
+    </header>
+
+    <!-- Center Hero Artwork & Thematic Elements -->
+    <div class="hero-center">
+      <div class="stage-glow"></div>
+
+      <!-- Official Game Artwork Logo -->
+      <div class="logo-box">
+        <img src="/assets/game_title_logo_opt.png" alt="Hide & Play Game Logo" onerror="this.src='/assets/icon.png'">
+      </div>
+
+      <!-- Game Tag Badge -->
+      <div class="game-tag-badge">🍃 Multiplayer Hide & Seek</div>
+
+      <!-- Gamified Thematic Elements -->
+      <div class="theme-chips-wrap">
+        <img src="/assets/avatars/traditional.png" class="peeking-char-left" alt="">
+        <img src="/assets/avatars/girl_default.png" class="peeking-char-right" alt="">
+
+        <div class="theme-chip">
+          <div class="theme-chip-icon">🏡</div>
+          <div class="theme-chip-body">
+            <span class="theme-chip-title">Childhood Nostalgia</span>
+            <span class="theme-chip-desc">Traditional village hide & seek, reimagined</span>
+          </div>
+        </div>
+
+        <div class="theme-chip">
+          <div class="theme-chip-icon">👥</div>
+          <div class="theme-chip-body">
+            <span class="theme-chip-title">Play With Friends</span>
+            <span class="theme-chip-desc">Create private rooms or jump into online matches</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ambient Scenery Foliage -->
+    <img src="/assets/tropical_bush.png" class="scenery-bush-left" alt="">
+    <img src="/assets/tropical_bush.png" class="scenery-bush-right" alt="">
+
+    <!-- Below-Center Action Area -->
+    <div class="action-panel">
+      <!-- Download Button -->
+      <a id="downloadBtn" href="/download/apk" class="btn-download">
+        <span class="btn-badge-corner" id="apkBadge">Android • 61 MB</span>
+        <div class="btn-icon-box">📥</div>
+        <span class="btn-main-title">DOWNLOAD APK</span>
+      </a>
+
+      <!-- Simple Under-Button Details -->
+      <div class="under-guide">
+        <span class="simple-cue">1. Download &bull; 2. Install &bull; 3. Play</span>
+        <button id="openFeedbackBtn2" class="btn-feedback-link">
+          <span>⭐ Give Feedback</span>
+        </button>
+      </div>
+      <div style="margin-top: 10px; font-size: 11px; color: #64748b; text-align: center; display: flex; gap: 10px; justify-content: center;">
+        <a href="/privacy" style="color:#94a3b8; text-decoration:none;">Privacy Policy</a> &bull;
+        <a href="/terms" style="color:#94a3b8; text-decoration:none;">Terms &amp; EULA</a> &bull;
+        <a href="/data-deletion" style="color:#94a3b8; text-decoration:none;">Data Deletion</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Minimal Feedback Modal -->
+  <div id="feedbackOverlay" class="modal-backdrop">
+    <div class="modal-content">
+      <button id="closeModalBtn" class="btn-modal-close">✕</button>
+      <h3>Tester Feedback</h3>
+      <p>How did the game feel?</p>
+
+      <div class="stars-selector" id="starRow">
+        <button type="button" class="star-btn active" data-val="1">★</button>
+        <button type="button" class="star-btn active" data-val="2">★</button>
+        <button type="button" class="star-btn active" data-val="3">★</button>
+        <button type="button" class="star-btn active" data-val="4">★</button>
+        <button type="button" class="star-btn active" data-val="5">★</button>
+      </div>
+
+      <input type="text" id="testerNameInput" class="modal-input" placeholder="Your Name or Nickname">
+      <textarea id="testerCommentsInput" class="modal-textarea" placeholder="Your feedback or suggestions..."></textarea>
+
+      <button id="sendFeedbackBtn" class="btn-modal-submit">Send Feedback ⭐</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast-pill">
+    <span>✅</span>
+    <span id="toastText">Download started!</span>
+  </div>
+
+  <!-- Audio Element -->
+  <audio id="clickAudio" src="/assets/click.wav" preload="auto"></audio>
+
+  <script>
+    let currentRating = 5;
+    let downloadUrl = '/download/apk';
+    const clickSound = document.getElementById('clickAudio');
+
+    function playTapSound() {
+      try {
+        if (clickSound) {
+          clickSound.currentTime = 0;
+          clickSound.play().catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    function showToast(msg) {
+      toastText.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    // 1. Track Visit
+    fetch('/api/download/track-visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        referrer: document.referrer,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        language: navigator.language || ''
+      })
+    }).catch(() => {});
+
+    // 2. Fetch Config
+    fetch('/api/download/config')
+      .then(r => r.json())
+      .then(data => {
+        if (data.config) {
+          if (data.config.r2_download_url && data.config.r2_download_url.trim()) {
+            downloadUrl = data.config.r2_download_url.trim();
+          }
+          if (data.config.apk_size_mb) {
+            document.getElementById('apkBadge').innerText = `Android • ${data.config.apk_size_mb}`;
+          }
+        }
+      }).catch(() => {});
+
+    // 3. Download Button Tap
+    const downloadBtn = document.getElementById('downloadBtn');
+    downloadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      playTapSound();
+
+      // Track Click
+      fetch('/api/download/track-click', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ download_url: downloadUrl })
+      }).catch(() => {});
+      showToast('Starting APK Download...');
+
+      setTimeout(() => {
+        window.location.href = downloadUrl;
+      }, 200);
+    });
+
+    // 4. Feedback Modal
+    const feedbackOverlay = document.getElementById('feedbackOverlay');
+    const openFeedbackBtn = document.getElementById('openFeedbackBtn');
+    const openFeedbackBtn2 = document.getElementById('openFeedbackBtn2');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const starRow = document.getElementById('starRow');
+    const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
+    const testerNameInput = document.getElementById('testerNameInput');
+    const testerCommentsInput = document.getElementById('testerCommentsInput');
+
+    function openModal() {
+      playTapSound();
+      feedbackOverlay.classList.add('active');
+    }
+
+    openFeedbackBtn.addEventListener('click', openModal);
+    if (openFeedbackBtn2) openFeedbackBtn2.addEventListener('click', openModal);
+
+    closeModalBtn.addEventListener('click', () => {
+      feedbackOverlay.classList.remove('active');
+    });
+
+    feedbackOverlay.addEventListener('click', (e) => {
+      if (e.target === feedbackOverlay) feedbackOverlay.classList.remove('active');
+    });
+
+    starRow.addEventListener('click', (e) => {
+      if (e.target.classList.contains('star-btn')) {
+        playTapSound();
+        currentRating = parseInt(e.target.dataset.val, 10);
+        starRow.querySelectorAll('.star-btn').forEach(b => {
+          b.classList.toggle('active', parseInt(b.dataset.val, 10) <= currentRating);
+        });
+      }
+    });
+
+    sendFeedbackBtn.addEventListener('click', async () => {
+      const comments = testerCommentsInput.value.trim();
+      if (!comments) {
+        showToast('Please enter your feedback!');
+        return;
+      }
+      playTapSound();
+      sendFeedbackBtn.disabled = true;
+      sendFeedbackBtn.innerText = 'Sending...';
+
+      try {
+        await fetch('/api/download/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: testerNameInput.value.trim() || 'Player',
+            rating: currentRating,
+            comments: comments
+          })
+        });
+        feedbackOverlay.classList.remove('active');
+        testerCommentsInput.value = '';
+        showToast('Thank you! Feedback received ❤️');
+      } catch (e) {
+        showToast('Error sending feedback');
+      } finally {
+        sendFeedbackBtn.disabled = false;
+        sendFeedbackBtn.innerText = 'Send Feedback ⭐';
+      }
+    });
+  </script>
+</body>
+</html>

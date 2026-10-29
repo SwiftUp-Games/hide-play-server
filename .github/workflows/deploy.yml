@@ -1,4 +1,4 @@
-name: Deploy to Render
+name: Deploy to AWS EC2
 
 on:
   push:
@@ -7,20 +7,22 @@ on:
 
 jobs:
   deploy:
-    name: Trigger Render Deploy Hook
-    needs: []
+    name: Deploy to AWS EC2 Production Server
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Deploy
+      - name: Deploy via SSH
         env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          EC2_HOST: ${{ secrets.EC2_HOST || '16.178.30.147' }}
+          EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
-            echo "ℹ️ RENDER_DEPLOY_HOOK_URL secret is not set."
-            echo "If your Render service is connected directly to your GitHub repo, Render will auto-deploy automatically upon push to main."
-            echo "To trigger deployments explicitly via this GitHub Action, create a Deploy Hook in Render Dashboard -> Settings -> Deploy Hook, and add it to GitHub Repository Secrets as RENDER_DEPLOY_HOOK_URL."
+          if [ -z "$EC2_SSH_KEY" ]; then
+            echo "ℹ️ EC2_SSH_KEY secret is not set. Add your EC2 private key to GitHub Secrets to enable automatic CD."
           else
-            echo "🚀 Triggering deployment on Render..."
-            curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
-            echo "✅ Render deployment successfully triggered!"
+            echo "🚀 Deploying updates to AWS EC2 ($EC2_HOST)..."
+            mkdir -p ~/.ssh
+            echo "$EC2_SSH_KEY" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" "cd /home/ubuntu/hide-play-server && ./scripts/deploy-aws.sh"
+            echo "✅ Successfully deployed to AWS EC2!"
           fi

@@ -712,27 +712,25 @@ app.get('/rooms', (req, res) => {
 const adminDistPath = path.resolve(__dirname, '../admin/dist');
 if (fs.existsSync(adminDistPath)) {
   app.use('/admin', express.static(adminDistPath));
-  app.use(express.static(adminDistPath));
   app.get(/^\/admin(?:\/.*)?$/, (_req, res) => {
     res.sendFile(path.join(adminDistPath, 'index.html'));
-  });
-  app.get('/', (req, res, next) => {
-    if (req.headers.accept && req.headers.accept.includes('text/html')) {
-      return res.sendFile(path.join(adminDistPath, 'index.html'));
-    }
-    next();
   });
 } else {
   app.get(/^\/admin(?:\/.*)?$/, (_req, res) => {
     res.send(getDashboardHtml());
   });
-  app.get('/', (req, res) => {
-    if (req.headers.accept && req.headers.accept.includes('text/html')) {
-      return res.send(getDashboardHtml());
-    }
-    res.json(getOnlineStats());
-  });
 }
+
+// Root route: Navigates directly to Download page for all visitors & social scrapers (WhatsApp, FB, Twitter)
+app.get('/', (req, res) => {
+  if (req.headers.accept && req.headers.accept.includes('application/json') && !req.headers.accept.includes('text/html')) {
+    return res.json(getOnlineStats());
+  }
+  if (fs.existsSync(downloadHtmlPath)) {
+    return res.sendFile(downloadHtmlPath);
+  }
+  return res.redirect('/download');
+});
 
 const server = http.createServer(app);
 
@@ -827,7 +825,7 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-// Periodic heartbeat to prevent idle timeouts across Render/Cloudflare proxies
+// Periodic heartbeat to prevent idle timeouts across AWS/Nginx/Cloudflare proxies
 setInterval(() => {
   for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) {

@@ -58,55 +58,30 @@ This repository includes a `render.yaml` blueprint and GitHub Actions CI/CD work
 
 ### Method 2: Manual Web Service Setup
 
-If you prefer manual configuration:
-1. In Render Dashboard, click **New +** ➔ **Web Service**.
-2. Connect `SwiftUp-Games/hide-play-server`.
-3. Configure the following fields:
-   - **Name**: `hide-play-server`
-   - **Region**: Singapore
-   - **Branch**: `main`
-   - **Root Directory**: *(Leave blank)*
-   - **Runtime**: `Node`
-   - **Build Command**: `npm ci && npm run build`
-   - **Start Command**: `npm start`
-   - **Instance Type**: `Free`
-4. Expand **Advanced**:
-   - **Health Check Path**: `/health`
-   - **Auto-Deploy**: `Yes`
-5. Click **Create Web Service**.
+## 🚀 AWS EC2 Production Deployment
+
+The production server is deployed on **AWS EC2** with Nginx and Let's Encrypt SSL.
+
+- **Production HTTPS**: `https://hideplay.swiftup.in`
+- **Production WSS (WebSocket)**: `wss://hideplay.swiftup.in`
+- **Admin Studio**: `https://hideplay.swiftup.in/admin`
+- **Health Check**: `https://hideplay.swiftup.in/health`
+
+### Automated Deployment to AWS
+1. SSH into the server or run locally:
+   ```bash
+   ./scripts/deploy-aws.sh
+   ```
+2. Automated CD workflow is located in `.github/workflows/deploy.yml` which auto-deploys on push to `main` via SSH.
 
 ---
 
-## 🔄 CI/CD & Deploy Hook Setup
-
-Two GitHub Actions workflows are included in `.github/workflows/`:
-1. **`ci.yml`**: Automatically builds and typechecks the server on Node 20 & 22 on all PRs and pushes to `main`.
-2. **`deploy.yml`**: Triggers a deployment on Render on merge to `main`.
-
-### Optional: Enabling Deploy Hook via GitHub Secrets
-If you want GitHub Actions to explicitly trigger Render re-deployments:
-1. In Render Dashboard, go to your service ➔ **Settings** ➔ scroll to **Deploy Hook**.
-2. Copy the Deploy Hook URL (`https://api.render.com/deploy/srv-xxxx?key=yyyy`).
-3. In your GitHub repository:
-   - Go to **Settings** ➔ **Secrets and variables** ➔ **Actions**.
-   - Click **New repository secret**.
-   - Name: `RENDER_DEPLOY_HOOK_URL`
-   - Value: *(Paste your Render Deploy Hook URL)*
-4. Every push to `main` will now trigger deployment through GitHub Actions!
-
----
-
-## 🎮 Connecting Godot Client to Render
-
-Once deployed, Render gives you a secure URL:
-- HTTPS: `https://hide-play-server.onrender.com`
-- WSS (WebSocket): `wss://hide-play-server.onrender.com`
+## 🎮 Connecting Godot Client to Server
 
 Update your Godot client (`NetworkManager.gd`):
 ```gdscript
-const DEFAULT_ONLINE_SERVER_URL: String = "wss://hide-play-server.onrender.com"
+const DEFAULT_ONLINE_SERVER_URL: String = "wss://hideplay.swiftup.in"
 ```
-*(Render provides automated SSL certificates, so secure WebSocket `wss://` works out of the box with zero setup).*
 
 ---
 

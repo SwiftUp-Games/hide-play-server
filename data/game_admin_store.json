@@ -93,12 +93,20 @@
     "target_os": "Android 8.0+"
   },
   "tester_analytics": {
-    "page_views": 0,
-    "unique_visitors": 0,
+    "page_views": 1,
+    "unique_visitors": 1,
     "download_clicks": 0,
     "game_opens": 0,
-    "visitor_devices": {},
-    "daily_stats": {}
+    "visitor_devices": {
+      "Mac": 1
+    },
+    "daily_stats": {
+      "2026-10-27": {
+        "views": 1,
+        "downloads": 0,
+        "game_opens": 0
+      }
+    }
   },
   "tester_feedbacks": [],
   "players": {},

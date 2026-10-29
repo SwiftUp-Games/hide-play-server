@@ -890,9 +890,12 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         }
       }
 
+      const rawName = msg.player_name || msg.name || msg.nickname || msg.display_name || 'Player';
+      const playerName = String(rawName).trim() || 'Player';
+
       if (targetRoom) {
         // Join existing matchmaking room
-        joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress);
+        joinRoomInternal(ws, targetRoom, playerName, msg.avatar, msg.hat, msg.dress);
         if (!targetRoom.matchmakingTimer) {
           startMatchmakingTimer(targetRoom);
         } else {
@@ -908,7 +911,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         const newRoom = createRoomInternal(ws, {
           mode: 'quick_match',
           isPublic: false,
-          player_name: msg.player_name || 'Player',
+          player_name: playerName,
           avatar: msg.avatar,
           hat: msg.hat,
           dress: msg.dress,
@@ -924,11 +927,13 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       leaveCurrentRoom(ws);
       const isPublic = msg.is_public !== false;
       const maxPlayers = msg.max_players ? Math.max(2, Math.min(20, Number(msg.max_players))) : (msg.settings?.max_players ? Math.max(2, Math.min(20, Number(msg.settings.max_players))) : 20);
+      const rawName = msg.player_name || msg.name || msg.nickname || msg.display_name || 'Host';
+      const playerName = String(rawName).trim() || 'Host';
       const newRoom = createRoomInternal(ws, {
         mode: 'custom',
         isPublic,
         max_players: maxPlayers,
-        player_name: msg.player_name || 'Host',
+        player_name: playerName,
         avatar: msg.avatar,
         hat: msg.hat,
         dress: msg.dress,
@@ -978,7 +983,9 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         return;
       }
 
-      joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress, msg.session_token);
+      const rawJoinName = msg.player_name || msg.name || msg.nickname || msg.display_name || 'Player';
+      const joinPlayerName = String(rawJoinName).trim() || 'Player';
+      joinRoomInternal(ws, targetRoom, joinPlayerName, msg.avatar, msg.hat, msg.dress, msg.session_token);
       break;
     }
 
@@ -1050,7 +1057,9 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         broadcastLobbyState(targetRoom);
         console.log(`[Player Reconnected] ${matchedPlayer.name} (Peer ${matchedPlayer.peerId}) rejoined room ${targetRoom.code}`);
       } else {
-        joinRoomInternal(ws, targetRoom, msg.player_name || 'Player', msg.avatar, msg.hat, msg.dress, sessionToken);
+        const rawRecName = msg.player_name || msg.name || msg.nickname || msg.display_name || 'Player';
+        const recPlayerName = String(rawRecName).trim() || 'Player';
+        joinRoomInternal(ws, targetRoom, recPlayerName, msg.avatar, msg.hat, msg.dress, sessionToken);
       }
       break;
     }
@@ -1067,6 +1076,9 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       if (currentRoom && currentPeerId === currentRoom.hostPeerId) {
         if (msg.settings) {
           currentRoom.settings = { ...currentRoom.settings, ...msg.settings };
+          if (currentRoom.settings.bot_count !== undefined) {
+            currentRoom.settings.bot_count = Math.min(MAX_BOTS, Math.max(0, Math.floor(Number(currentRoom.settings.bot_count) || 0)));
+          }
           broadcastToRoom(currentRoom, {
             type: 'SETTINGS_UPDATED',
             settings: currentRoom.settings
@@ -1083,7 +1095,14 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       if (currentRoom) {
         const player = currentRoom.players.get(currentPeerId);
         if (player) {
-          player.isReady = !!msg.is_ready;
+          player.isReady = !!(msg.is_ready ?? msg.isReady);
+          const rawName = msg.player_name || msg.name || msg.nickname || msg.display_name;
+          if (rawName && String(rawName).trim().length > 0) {
+            player.name = String(rawName).trim();
+          }
+          if (msg.avatar) player.avatar = String(msg.avatar);
+          if (msg.hat) player.hat = String(msg.hat);
+          if (msg.dress) player.dress = String(msg.dress);
           broadcastLobbyState(currentRoom);
         }
       }
@@ -1097,7 +1116,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         currentRoom.status = 'countdown';
 
         // Custom room bot check: only add bots if host explicitly configured them in settings (capped at MAX_BOTS)
-        const customBots = Math.min(MAX_BOTS, Math.max(0, currentRoom.settings.bot_count || 0));
+        const customBots = Math.min(MAX_BOTS, Math.max(0, Math.floor(Number(currentRoom.settings.bot_count) || 0)));
         if (customBots > 0) {
           console.log(`[Custom Room] Room ${currentRoom.code} host configured ${customBots} bots.`);
           broadcastToRoom(currentRoom, {
@@ -1117,6 +1136,30 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       if (currentRoom) {
         const targetPeerId = msg.target_peer_id; // 0 or undefined for broadcast
         msg.from_peer_id = currentPeerId;
+
+        // Synchronize player state if this relay contains profile or readiness updates
+        const player = currentRoom.players.get(currentPeerId);
+        let lobbyUpdated = false;
+        if (player) {
+          const action = (msg.action || '').toString().toUpperCase();
+          if (action === 'PLAYER_PROFILE' || action === 'PROFILE_UPDATE') {
+            const newName = msg.player_name || msg.name || msg.nickname || msg.display_name;
+            if (newName && String(newName).trim().length > 0) {
+              player.name = String(newName).trim();
+              lobbyUpdated = true;
+            }
+            if (msg.avatar) { player.avatar = String(msg.avatar); lobbyUpdated = true; }
+            if (msg.hat) { player.hat = String(msg.hat); lobbyUpdated = true; }
+            if (msg.dress) { player.dress = String(msg.dress); lobbyUpdated = true; }
+          } else if (action === 'PLAYER_READY' || action === 'READY_STATUS') {
+            const readyVal = msg.is_ready !== undefined ? msg.is_ready : (msg.isReady !== undefined ? msg.isReady : msg.ready);
+            if (readyVal !== undefined) {
+              player.isReady = !!readyVal;
+              lobbyUpdated = true;
+            }
+          }
+        }
+
         if (targetPeerId && targetPeerId > 0) {
           const dest = currentRoom.players.get(targetPeerId);
           if (dest && dest.ws.readyState === WebSocket.OPEN) {
@@ -1129,6 +1172,10 @@ function handleClientMessage(ws: WebSocket, msg: any) {
               safeSend(p.ws, msg);
             }
           }
+        }
+
+        if (lobbyUpdated) {
+          broadcastLobbyState(currentRoom);
         }
       }
       break;

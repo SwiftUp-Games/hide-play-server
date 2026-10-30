@@ -5,9 +5,11 @@ module.exports = {
       script: 'dist/index.js',
       cwd: __dirname,
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '450M', // Guard against memory leaks on 1GB RAM instances
+      node_args: '--max-old-space-size=400',
       env: {
         NODE_ENV: 'production',
         PORT: 10000

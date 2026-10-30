@@ -41,7 +41,18 @@ fi
 # 5. Create log directory
 mkdir -p logs
 
-# 6. Configure Firewall
+# 6. Kernel & Network Optimization (Google BBR, Low Latency TCP)
+echo "⚡ Tuning Linux Kernel TCP parameters for real-time multiplayer & voice..."
+cat << 'EOF' | sudo tee /etc/sysctl.d/99-game-server.conf
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_notsent_lowat = 16384
+net.ipv4.tcp_fastopen = 3
+EOF
+sudo sysctl -p /etc/sysctl.d/99-game-server.conf || true
+
+# 7. Configure Firewall
 echo "🛡️ Configuring UFW firewall..."
 sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx Full'

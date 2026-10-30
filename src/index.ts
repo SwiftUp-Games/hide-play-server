@@ -268,7 +268,7 @@ app.post('/api/admin/rooms/:code/close', requireAdmin, (req, res) => {
     stopRoomTimers(room);
     broadcastToRoom(room, { type: 'ERROR', code: 'ROOM_CLOSED', message: 'Room closed by Game Admin.' });
     for (const [_, p] of room.players) {
-      clientToRoom.delete(p.ws);
+      if (p.ws) clientToRoom.delete(p.ws);
     }
     rooms.delete(code);
     return res.json({ success: true, message: `Room ${code} closed.` });
@@ -782,7 +782,12 @@ function getPublicRoomsSummary() {
 // ----------------------------------------------------------------------------
 // WebSocket Server (Matchmaking, Signaling & Fast Relay)
 // ----------------------------------------------------------------------------
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ 
+  server,
+  perMessageDeflate: false, // Prevents compression latency on already-compressed Opus & coordinate packets
+  clientTracking: true,
+  maxPayload: 10 * 1024 * 1024
+});
 
 wss.on('connection', (ws: WebSocket) => {
   // Track mobile client opening and connecting to game
@@ -1160,13 +1165,13 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
         if (targetPeerId && targetPeerId > 0) {
           const dest = currentRoom.players.get(targetPeerId);
-          if (dest && dest.ws.readyState === WebSocket.OPEN) {
+          if (dest && dest.ws && dest.ws.readyState === WebSocket.OPEN) {
             safeSend(dest.ws, msg);
           }
         } else {
           // Broadcast to other peers in room
           for (const [id, p] of currentRoom.players) {
-            if (id !== currentPeerId && p.ws.readyState === WebSocket.OPEN) {
+            if (id !== currentPeerId && p.ws && p.ws.readyState === WebSocket.OPEN) {
               safeSend(p.ws, msg);
             }
           }
@@ -1185,7 +1190,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         const targetPeerId = msg.target_peer_id !== undefined ? msg.target_peer_id : msg.targetPeerId;
         if (targetPeerId) {
           const dest = currentRoom.players.get(targetPeerId);
-          if (dest && dest.ws.readyState === WebSocket.OPEN) {
+          if (dest && dest.ws && dest.ws.readyState === WebSocket.OPEN) {
             msg.from_peer_id = currentPeerId;
             msg.fromPeerId = currentPeerId;
             safeSend(dest.ws, msg);
@@ -1228,8 +1233,10 @@ function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
     const room = rooms.get(mapping.roomCode);
     if (!room) return;
 
+    const isVoice = (buffer.length >= 5 && buffer[0] === 0x56);
+
     // 0x56 = 'V' for VOICE_AUDIO packet
-    if (buffer.length >= 5 && buffer[0] === 0x56) {
+    if (isVoice) {
       // Stamp authoritative sender peerId in bytes 1-2 (Little-Endian matching GDScript decode_u16)
       buffer.writeUInt16LE(mapping.peerId, 1);
       const targetPeerId = buffer.readUInt16LE(3);
@@ -1237,11 +1244,14 @@ function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
       // If a specific target peer is requested (> 0), deliver unicast
       if (targetPeerId > 0) {
         const dest = room.players.get(targetPeerId);
-        if (dest && dest.ws !== ws && dest.ws.readyState === WebSocket.OPEN) {
-          try {
-            dest.ws.send(buffer, { binary: true });
-          } catch (err) {
-            // ignore send error on closing socket
+        if (dest && dest.ws && dest.ws !== ws && dest.ws.readyState === WebSocket.OPEN) {
+          // Drop if client buffer congested to preserve real-time voice latency
+          if (dest.ws.bufferedAmount < 32768) {
+            try {
+              dest.ws.send(buffer, { binary: true });
+            } catch (err) {
+              // ignore send error on closing socket
+            }
           }
         }
         return;
@@ -1251,6 +1261,14 @@ function handleBinaryRelay(ws: WebSocket, buffer: Buffer) {
     // Broadcast binary packet strictly to all other peers in the same room
     for (const [, p] of room.players) {
       if (p.ws !== ws && p.ws && p.ws.readyState === WebSocket.OPEN) {
+        // Real-time voice backpressure check: drop stale frames on congested links
+        if (isVoice && p.ws.bufferedAmount >= 32768) {
+          continue;
+        }
+        // General game packet backpressure check
+        if (!isVoice && p.ws.bufferedAmount >= 65536) {
+          continue;
+        }
         try {
           p.ws.send(buffer, { binary: true });
         } catch (err) {
@@ -1624,7 +1642,7 @@ function handleDisconnect(ws: WebSocket) {
 function broadcastToRoom(room: Room, data: any) {
   const msg = typeof data === 'string' ? data : JSON.stringify(data);
   for (const [, p] of room.players) {
-    if (p.ws.readyState === WebSocket.OPEN) {
+    if (p.ws && p.ws.readyState === WebSocket.OPEN) {
       try {
         p.ws.send(msg);
       } catch (err) {
@@ -2099,6 +2117,14 @@ function getDashboardHtml(): string {
     console.log(`🩺 Health check: http://0.0.0.0:${PORT}/health`);
     console.log(`🌐 Public rooms: http://0.0.0.0:${PORT}/rooms`);
     console.log('================================================================');
+  });
+
+  // Global uncaught exception guards so room glitches never drop active game sockets
+  process.on('uncaughtException', (err) => {
+    console.error('[Process Safety] Uncaught Exception trapped:', err);
+  });
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Process Safety] Unhandled Rejection at:', promise, 'reason:', reason);
   });
 })();
 

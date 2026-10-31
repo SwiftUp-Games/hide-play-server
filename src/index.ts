@@ -790,6 +790,12 @@ const wss = new WebSocketServer({
 });
 
 wss.on('connection', (ws: WebSocket) => {
+  // Mark connection as active for heartbeat tracking
+  (ws as any).isAlive = true;
+  ws.on('pong', () => {
+    (ws as any).isAlive = true;
+  });
+
   // Track mobile client opening and connecting to game
   gameStore.trackGameOpen();
 
@@ -805,6 +811,9 @@ wss.on('connection', (ws: WebSocket) => {
   });
 
   ws.on('message', (raw: Buffer | string) => {
+    // Keep alive on active messages
+    (ws as any).isAlive = true;
+
     // Check if raw binary or text JSON
     if (Buffer.isBuffer(raw) && raw.length > 0 && raw[0] !== 0x7B) {
       // Binary game packet relay: forward to room peers
@@ -830,10 +839,17 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-// Periodic heartbeat to prevent idle timeouts across AWS/Nginx/Cloudflare proxies
+// Periodic heartbeat & zombie connection reaper
 setInterval(() => {
   for (const client of wss.clients) {
+    const sock = client as WebSocket & { isAlive?: boolean };
+    if (sock.isAlive === false) {
+      // Socket did not respond to previous ping -> terminate ghost connection immediately
+      client.terminate();
+      continue;
+    }
     if (client.readyState === WebSocket.OPEN) {
+      sock.isAlive = false;
       try {
         client.ping();
       } catch (e) {

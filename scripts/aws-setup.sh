@@ -41,9 +41,28 @@ fi
 # 5. Create log directory
 mkdir -p logs
 
-# 6. Kernel & Network Optimization (Google BBR, Low Latency TCP)
-echo "⚡ Tuning Linux Kernel TCP parameters for real-time multiplayer & voice..."
+# 6. Kernel & Network Optimization (Google BBR, Low Latency TCP & High Load Capacity)
+echo "⚡ Tuning Linux Kernel TCP parameters for real-time multiplayer & voice under high load..."
 cat << 'EOF' | sudo tee /etc/sysctl.d/99-game-server.conf
+# File descriptor ceilings
+fs.file-max = 2097152
+
+# Socket listen backlog (prevents dropped connections on traffic spikes)
+net.core.somaxconn = 65535
+net.ipv4.tcp_max_syn_backlog = 65535
+
+# Fast socket recycling & ephemeral port range
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_fin_timeout = 15
+
+# Network memory buffer ceilings
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+
+# Real-time congestion control & pacing
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 net.ipv4.tcp_slow_start_after_idle = 0
@@ -51,6 +70,19 @@ net.ipv4.tcp_notsent_lowat = 16384
 net.ipv4.tcp_fastopen = 3
 EOF
 sudo sysctl -p /etc/sysctl.d/99-game-server.conf || true
+
+# System-wide file descriptor limits for processes
+echo "⚡ Setting system security limits (nofile 1048576)..."
+cat << 'EOF' | sudo tee /etc/security/limits.d/99-game-nofile.conf
+* soft nofile 1048576
+* hard nofile 1048576
+root soft nofile 1048576
+root hard nofile 1048576
+ubuntu soft nofile 1048576
+ubuntu hard nofile 1048576
+www-data soft nofile 1048576
+www-data hard nofile 1048576
+EOF
 
 # 7. Configure Firewall
 echo "🛡️ Configuring UFW firewall..."

@@ -294,15 +294,22 @@ class GameStore {
     return DEFAULT_DATA;
   }
 
+  private saveDebounceTimer?: NodeJS.Timeout;
+  private isSavePending = false;
+
   private saveData(data: GameAdminData): void {
-    try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
-      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (err) {
-      console.error('[GameStore] Error saving data file:', err);
-    }
+    this.isSavePending = true;
+    if (this.saveDebounceTimer) return;
+
+    this.saveDebounceTimer = setTimeout(() => {
+      this.saveDebounceTimer = undefined;
+      if (!this.isSavePending) return;
+      this.isSavePending = false;
+      const payload = JSON.stringify(this.data, null, 2);
+      fs.promises.mkdir(DATA_DIR, { recursive: true })
+        .then(() => fs.promises.writeFile(DATA_FILE, payload, 'utf-8'))
+        .catch(err => console.error('[GameStore] Error asynchronously saving data file:', err));
+    }, 1500);
   }
 
   // --------------------------------------------------------------------------

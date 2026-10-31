@@ -9,10 +9,11 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '450M', // Guard against memory leaks on 1GB RAM instances
-      node_args: '--max-old-space-size=400',
+      node_args: '--max-old-space-size=450',
       env: {
         NODE_ENV: 'production',
-        PORT: 10000
+        PORT: 10000,
+        UV_THREADPOOL_SIZE: 16
       },
       error_file: 'logs/pm2-err.log',
       out_file: 'logs/pm2-out.log',

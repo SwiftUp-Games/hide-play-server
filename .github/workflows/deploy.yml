@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Deploy via SSH
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST || '16.178.63.129' }}
+          EC2_HOST: ${{ secrets.EC2_HOST || '16.4.148.241' }}
           EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
